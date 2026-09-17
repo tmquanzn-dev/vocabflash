@@ -1,10 +1,10 @@
-import { $, esc, toast } from '../utils.js?v=9';
-import { Store } from '../store.js?v=9';
-import { Auth } from '../auth.js?v=9';
-import { TTS } from '../tts.js?v=9';
-import { setTitle, applyTheme } from '../shell.js?v=9';
-import { openModal, closeModal, confirmModal } from '../modal.js?v=9';
-import { render } from '../router.js?v=9';
+import { $, esc, toast } from '../utils.js?v=10';
+import { Store } from '../store.js?v=10';
+import { Auth } from '../auth.js?v=10';
+import { TTS } from '../tts.js?v=10';
+import { setTitle, applyTheme } from '../shell.js?v=10';
+import { openModal, closeModal, confirmModal } from '../modal.js?v=10';
+import { render } from '../router.js?v=10';
 
 /* Mã bookmarklet: lấy chữ đang bôi đen + câu chứa nó, mở VocabFlash ở #/add?... */
 function bookmarklet() {

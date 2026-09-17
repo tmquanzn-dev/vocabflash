@@ -1,5 +1,5 @@
-import { Auth } from './auth.js?v=9';
-import { Store } from './store.js?v=9';
+import { Auth } from './auth.js?v=10';
+import { Store } from './store.js?v=10';
 
 /**
  * Chợ chủ đề (cộng đồng): bảng public.public_topics trên Supabase.

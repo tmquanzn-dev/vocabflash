@@ -1,6 +1,6 @@
-import { fetchTimeout } from './utils.js?v=9';
-import { CONFIG, isCloudEnabled } from './config.js?v=9';
-import { Auth } from './auth.js?v=9';
+import { fetchTimeout } from './utils.js?v=10';
+import { CONFIG, isCloudEnabled } from './config.js?v=10';
+import { Auth } from './auth.js?v=10';
 
 /**
  * AI trích xuất từ vựng: dùng Gemini API (Google AI Studio) với API key của chính người dùng, lưu trên máy này.

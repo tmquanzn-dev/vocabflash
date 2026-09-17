@@ -1,10 +1,10 @@
-import { $, esc, shuffle, toast, isTyping, lengthClass } from '../utils.js?v=9';
-import { Store } from '../store.js?v=9';
-import { TTS } from '../tts.js?v=9';
-import { Speech } from '../speech.js?v=9';
-import { setTitle, renderSidebar } from '../shell.js?v=9';
-import { isModalOpen } from '../modal.js?v=9';
-import { onLeave, go } from '../router.js?v=9';
+import { $, esc, shuffle, toast, isTyping, lengthClass } from '../utils.js?v=10';
+import { Store } from '../store.js?v=10';
+import { TTS } from '../tts.js?v=10';
+import { Speech } from '../speech.js?v=10';
+import { setTitle, renderSidebar } from '../shell.js?v=10';
+import { isModalOpen } from '../modal.js?v=10';
+import { onLeave, go } from '../router.js?v=10';
 
 /**
  * Bộ từ để học theo id trên URL: id chủ đề, 'all' (mọi chủ đề) hoặc 'starred' (từ đã đánh dấu ⭐)

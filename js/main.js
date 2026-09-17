@@ -1,12 +1,12 @@
-import { $, $$, toast } from './utils.js?v=9';
-import { Auth } from './auth.js?v=9';
-import { Store } from './store.js?v=9';
-import { TTS } from './tts.js?v=9';
-import { applyTheme, toggleTheme, toggleSidebar, closeSidebar, renderSyncState, renderUserCard } from './shell.js?v=9';
-import { closeModal, isModalOpen, confirmModal } from './modal.js?v=9';
-import { topicForm } from './forms.js?v=9';
-import { render, parseHash } from './router.js?v=9';
-import { Inbox } from './inbox.js?v=9';
+import { $, $$, toast } from './utils.js?v=10';
+import { Auth } from './auth.js?v=10';
+import { Store } from './store.js?v=10';
+import { TTS } from './tts.js?v=10';
+import { applyTheme, toggleTheme, toggleSidebar, closeSidebar, renderSyncState, renderUserCard } from './shell.js?v=10';
+import { closeModal, isModalOpen, confirmModal } from './modal.js?v=10';
+import { topicForm } from './forms.js?v=10';
+import { render, parseHash } from './router.js?v=10';
+import { Inbox } from './inbox.js?v=10';
 
 /* Điểm khởi động ứng dụng */
 async function boot() {

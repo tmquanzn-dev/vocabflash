@@ -1,11 +1,11 @@
-import { $, $$, esc, toast } from '../utils.js?v=9';
-import { Store } from '../store.js?v=9';
-import { Auth } from '../auth.js?v=9';
-import { TTS } from '../tts.js?v=9';
-import { setTitle } from '../shell.js?v=9';
-import { confirmModal } from '../modal.js?v=9';
-import { topicForm, libraryForm } from '../forms.js?v=9';
-import { render } from '../router.js?v=9';
+import { $, $$, esc, toast } from '../utils.js?v=10';
+import { Store } from '../store.js?v=10';
+import { Auth } from '../auth.js?v=10';
+import { TTS } from '../tts.js?v=10';
+import { setTitle } from '../shell.js?v=10';
+import { confirmModal } from '../modal.js?v=10';
+import { topicForm, libraryForm } from '../forms.js?v=10';
+import { render } from '../router.js?v=10';
 
 // Chế độ quản lý chủ đề: chọn nhiều chủ đề để xoá
 const mg = { on: false, sel: new Set() };

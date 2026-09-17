@@ -1,8 +1,8 @@
-import { $, $$, esc, initials } from './utils.js?v=9';
-import { Store } from './store.js?v=9';
-import { Auth } from './auth.js?v=9';
-import { CONFIG } from './config.js?v=9';
-import { Inbox } from './inbox.js?v=9';
+import { $, $$, esc, initials } from './utils.js?v=10';
+import { Store } from './store.js?v=10';
+import { Auth } from './auth.js?v=10';
+import { CONFIG } from './config.js?v=10';
+import { Inbox } from './inbox.js?v=10';
 
 /* Khung giao diện chung: sidebar, thanh tiêu đề, giao diện sáng/tối, trạng thái đồng bộ */
 

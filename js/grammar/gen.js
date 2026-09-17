@@ -1,4 +1,4 @@
-import { shuffle, sample } from '../utils.js?v=9';
+import { shuffle, sample } from '../utils.js?v=10';
 
 /**
  * Bộ sinh câu hỏi ngữ pháp tự động: ghép chủ ngữ × động từ × dấu hiệu nhận biết rồi chia động từ đúng theo thì.

@@ -1,9 +1,9 @@
-import { $, $$, esc, shuffle, sample } from '../utils.js?v=9';
-import { Store } from '../store.js?v=9';
-import { TTS } from '../tts.js?v=9';
-import { setTitle } from '../shell.js?v=9';
-import { onLeave, go } from '../router.js?v=9';
-import { resolveWordSet } from './flashcards.js?v=9';
+import { $, $$, esc, shuffle, sample } from '../utils.js?v=10';
+import { Store } from '../store.js?v=10';
+import { TTS } from '../tts.js?v=10';
+import { setTitle } from '../shell.js?v=10';
+import { onLeave, go } from '../router.js?v=10';
+import { resolveWordSet } from './flashcards.js?v=10';
 
 /* Trò chơi nối từ – nghĩa: chọn 1 thẻ tiếng Anh + 1 thẻ nghĩa, đúng thì biến mất */
 export function viewMatch(el, { id, parts }) {

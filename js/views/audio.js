@@ -1,10 +1,10 @@
-import { $, $$, esc, shuffle, sleep, isTyping, lengthClass, normalizeAnswer, toast } from '../utils.js?v=9';
-import { Store } from '../store.js?v=9';
-import { TTS } from '../tts.js?v=9';
-import { setTitle } from '../shell.js?v=9';
-import { isModalOpen } from '../modal.js?v=9';
-import { onLeave, go } from '../router.js?v=9';
-import { resolveWordSet } from './flashcards.js?v=9';
+import { $, $$, esc, shuffle, sleep, isTyping, lengthClass, normalizeAnswer, toast } from '../utils.js?v=10';
+import { Store } from '../store.js?v=10';
+import { TTS } from '../tts.js?v=10';
+import { setTitle } from '../shell.js?v=10';
+import { isModalOpen } from '../modal.js?v=10';
+import { onLeave, go } from '../router.js?v=10';
+import { resolveWordSet } from './flashcards.js?v=10';
 
 const DEFAULTS = { repeats: 3, gap: 0.8, wordGap: 1.6, sayMeaning: false, loop: false, shuffle: false, hideText: false };
 
