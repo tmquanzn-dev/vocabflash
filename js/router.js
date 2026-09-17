@@ -21,10 +21,11 @@ import { viewExplore } from './views/explore.js?v=9';
 import { viewAI } from './views/ai.js?v=9';
 import { viewSpell } from './views/spell.js?v=9';
 import { viewInbox } from './views/inbox.js?v=9';
+import { viewAdd } from './views/add.js?v=9';
 
 /* Điều hướng theo hash: #/topic/<id>, #/quiz/<id>, ... */
 const PUBLIC_ROUTES = { landing: viewLanding, login: viewAuth, register: viewAuth };
-const APP_ROUTES = { home: viewHome, topic: viewTopic, flash: viewFlash, quiz: viewQuiz, match: viewMatch, audio: viewAudio, leaderboard: viewLeaderboard, review: viewReview, search: viewSearch, settings: viewSettings, profile: viewProfile, grammar: viewGrammar, explore: viewExplore, ai: viewAI, spell: viewSpell, inbox: viewInbox };
+const APP_ROUTES = { home: viewHome, topic: viewTopic, flash: viewFlash, quiz: viewQuiz, match: viewMatch, audio: viewAudio, leaderboard: viewLeaderboard, review: viewReview, search: viewSearch, settings: viewSettings, profile: viewProfile, grammar: viewGrammar, explore: viewExplore, ai: viewAI, spell: viewSpell, inbox: viewInbox, add: viewAdd };
 
 let cleanup = null;
 /** View đăng ký hàm dọn dẹp (gỡ phím tắt...) khi rời khỏi view */
@@ -32,14 +33,15 @@ export function onLeave(fn) { cleanup = fn; }
 export function go(path) { location.hash = '#' + (path.startsWith('/') ? path : '/' + path); }
 
 export function parseHash() {
-  const parts = (location.hash || '#/').replace(/^#\/?/, '').split('/');
-  return { view: parts[0] || 'home', id: parts[1], parts };
+  const [path, query = ''] = (location.hash || '#/').replace(/^#\/?/, '').split('?');
+  const parts = path.split('/');
+  return { view: parts[0] || 'home', id: parts[1], parts, query: new URLSearchParams(query) };
 }
 
 export function render() {
   if (cleanup) { cleanup(); cleanup = null; }
   TTS.stop();
-  const { view, id, parts } = parseHash();
+  const { view, id, parts, query } = parseHash();
   const loggedIn = !!Auth.user && !!Store.data;
 
   if (!loggedIn) {
@@ -63,7 +65,7 @@ export function render() {
   const fn = APP_ROUTES[view] || viewHome;
   // Tạo lại #view để các listener của màn hình trước không còn dính lại
   const old = $('#view'); const fresh = old.cloneNode(false); old.replaceWith(fresh);
-  fn(fresh, { view, id, parts });
+  fn(fresh, { view, id, parts, query });
 }
 
 function showPublic(isPublic) {

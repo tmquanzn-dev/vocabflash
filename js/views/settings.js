@@ -6,6 +6,13 @@ import { setTitle, applyTheme } from '../shell.js?v=9';
 import { openModal, closeModal, confirmModal } from '../modal.js?v=9';
 import { render } from '../router.js?v=9';
 
+/* Mã bookmarklet: lấy chữ đang bôi đen + câu chứa nó, mở VocabFlash ở #/add?... */
+function bookmarklet() {
+  const app = location.origin + location.pathname;
+  const code = `(function(){var s=String(getSelection()).replace(/\s+/g,' ').trim();if(!s){s=prompt('Từ tiếng Anh muốn thêm:');if(!s)return;}var c='';try{var n=getSelection().anchorNode;var p=n&&(n.nodeType==1?n:n.parentElement);while(p&&p.parentElement&&(p.innerText||'').length<60)p=p.parentElement;var t=(p&&p.innerText||'').replace(/\s+/g,' ');var m=t.match(/[^.!?]+[.!?]+|[^.!?]+$/g)||[];for(var i=0;i<m.length;i++){if(m[i].toLowerCase().indexOf(s.toLowerCase())>-1){c=m[i].trim().slice(0,400);break;}}}catch(e){}window.open(${JSON.stringify(app)}+'#/add?w='+encodeURIComponent(s)+'&c='+encodeURIComponent(c)+'&u='+encodeURIComponent(location.href)+'&t='+encodeURIComponent(document.title),'_blank');})();`;
+  return 'javascript:' + encodeURIComponent(code);
+}
+
 /* Cài đặt: phát âm, giao diện, mục tiêu, dữ liệu */
 export function viewSettings(el) {
   setTitle('Cài đặt');
@@ -39,10 +46,13 @@ export function viewSettings(el) {
         <p class="hint mt" style="margin-top:8px">${Store.cloud ? 'Chỉ chia sẻ tên hiển thị, ảnh đại diện và số lượt ôn – không chia sẻ từ vựng của bạn.' : 'Cần đăng nhập tài khoản (chế độ cloud) để tham gia bảng xếp hạng.'}</p>
       </div>
       <div class="card">
-        <h3>🧩 Extension Chrome – thêm từ ngay khi đọc báo</h3>
-        <p class="muted small">Bôi đen từ trên trang web → chuột phải → <b>Thêm vào VocabFlash</b> → từ về <a href="#/inbox" style="color:var(--primary)">📥 Hộp thư từ</a>, bạn điền nghĩa (AI điền được) rồi thêm vào chủ đề.</p>
+        <h3>➕ Thêm từ ngay khi đang đọc báo</h3>
+        <p class="muted small"><b>Cách 1 – Bookmarklet (không cần cài gì, mọi trình duyệt):</b> kéo nút dưới đây lên <b>thanh dấu trang</b> (Ctrl+Shift+B để hiện thanh). Khi đọc trang tiếng Anh, bôi đen từ rồi bấm nút đó → VocabFlash mở ra với từ + câu chứa từ đã điền sẵn.</p>
+        <div class="row mb"><a class="btn btn-primary bookmarklet" id="sBm" href="${esc(bookmarklet())}" title="Kéo tôi lên thanh dấu trang" draggable="true">➕ VocabFlash</a><span class="hint">Trên điện thoại: thêm dấu trang bất kỳ rồi sửa URL thành nội dung nút này (bấm "Sao chép mã"). <button class="link" id="sBmCopy">Sao chép mã</button></span></div>
+        <p class="muted small"><b>Cách 2 – Extension Chrome:</b> bôi đen → chuột phải → <b>Thêm vào VocabFlash</b> → từ về <a href="#/inbox" style="color:var(--primary)">📥 Hộp thư từ</a> (kèm câu chứa từ), điền nghĩa bằng AI rồi thêm vào chủ đề.</p>
         <ol class="muted small" style="margin:0 0 10px;padding-left:18px">
-          <li>Tải mã nguồn web, mở Chrome → <code>chrome://extensions</code> → bật <b>Developer mode</b> → <b>Load unpacked</b> → chọn thư mục <code>extension/</code>.</li>
+          <li><a href="extension/vocabflash-extension.zip" download style="color:var(--primary)">⬇️ Tải extension (.zip)</a> rồi giải nén ra một thư mục.</li>
+          <li>Chrome → <code>chrome://extensions</code> → bật <b>Developer mode</b> (góc phải) → <b>Load unpacked</b> → chọn thư mục vừa giải nén.</li>
           <li>Bấm biểu tượng VocabFlash trên thanh công cụ → đăng nhập bằng <b>email + mật khẩu</b> của tài khoản này.</li>
         </ol>
         ${Store.cloud ? `<div class="row"><input class="input" type="password" id="sPass" placeholder="${Auth.user.provider === 'email' ? 'Đổi mật khẩu (≥ 6 ký tự)' : 'Đặt mật khẩu để đăng nhập extension (≥ 6 ký tự)'}" style="max-width:320px" autocomplete="new-password"><button class="btn" id="sPassBtn">🔑 ${Auth.user.provider === 'email' ? 'Đổi mật khẩu' : 'Đặt mật khẩu'}</button></div>
@@ -72,6 +82,8 @@ export function viewSettings(el) {
   $('#sLb', el).addEventListener('change', e => { s.showOnLeaderboard = e.target.checked; save(); if (e.target.checked) Store.pushLeaderboard(); else Store.removeFromLeaderboard(); });
   $('#sGoal', el).addEventListener('change', e => { s.dailyGoal = Math.max(5, parseInt(e.target.value) || 20); save(); });
 
+  $('#sBm', el).addEventListener('click', e => { e.preventDefault(); toast('Hãy KÉO nút này lên thanh dấu trang (Ctrl+Shift+B để hiện thanh), không bấm', 4000); });
+  $('#sBmCopy', el).addEventListener('click', async () => { try { await navigator.clipboard.writeText(bookmarklet()); toast('Đã sao chép – dán vào URL của một dấu trang'); } catch { toast('Không sao chép được'); } });
   $('#sPassBtn', el)?.addEventListener('click', async e => {
     const b = e.currentTarget; b.disabled = true;
     try { await Auth.setPassword($('#sPass', el).value); $('#sPass', el).value = ''; toast('Đã lưu mật khẩu – dùng email này để đăng nhập extension'); }
