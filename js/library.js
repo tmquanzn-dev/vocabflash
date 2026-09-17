@@ -1,0 +1,128 @@
+/* Thư viện chủ đề mẫu – thêm vào tài khoản bằng một cú bấm.
+   Định dạng mỗi từ: [từ, phiên âm, loại từ, nghĩa, ví dụ EN, dịch VI] */
+export const LIBRARY = [
+  {
+    id: 'travel', name: 'Travel', icon: '✈️', desc: 'Du lịch, sân bay, khách sạn', level: 'Cơ bản',
+    words: [
+      ['passport', '/ˈpæspɔːrt/', 'noun', 'hộ chiếu', 'Don\'t forget your passport.', 'Đừng quên hộ chiếu của bạn.'],
+      ['luggage', '/ˈlʌɡɪdʒ/', 'noun', 'hành lý', 'My luggage is too heavy.', 'Hành lý của tôi quá nặng.'],
+      ['boarding pass', '/ˈbɔːrdɪŋ pæs/', 'phrase', 'thẻ lên máy bay', 'Please show your boarding pass.', 'Vui lòng xuất trình thẻ lên máy bay.'],
+      ['departure', '/dɪˈpɑːrtʃər/', 'noun', 'sự khởi hành', 'The departure time is 9 a.m.', 'Giờ khởi hành là 9 giờ sáng.'],
+      ['destination', '/ˌdestɪˈneɪʃn/', 'noun', 'điểm đến', 'Paris is a popular destination.', 'Paris là một điểm đến nổi tiếng.'],
+      ['book a room', '/bʊk ə ruːm/', 'phrase', 'đặt phòng', 'I want to book a room for two nights.', 'Tôi muốn đặt phòng cho hai đêm.'],
+      ['sightseeing', '/ˈsaɪtsiːɪŋ/', 'noun', 'tham quan', 'We went sightseeing in the old town.', 'Chúng tôi đi tham quan khu phố cổ.'],
+      ['souvenir', '/ˌsuːvəˈnɪr/', 'noun', 'quà lưu niệm', 'I bought a souvenir for my mom.', 'Tôi mua một món quà lưu niệm cho mẹ.'],
+      ['itinerary', '/aɪˈtɪnəreri/', 'noun', 'lịch trình chuyến đi', 'Our itinerary includes three cities.', 'Lịch trình của chúng tôi gồm ba thành phố.'],
+      ['check in', '/tʃek ɪn/', 'phrase', 'làm thủ tục (nhận phòng / lên máy bay)', 'You can check in online.', 'Bạn có thể làm thủ tục trực tuyến.'],
+    ],
+  },
+  {
+    id: 'food', name: 'Food & Drink', icon: '🍔', desc: 'Đồ ăn, nhà hàng, nấu nướng', level: 'Cơ bản',
+    words: [
+      ['delicious', '/dɪˈlɪʃəs/', 'adjective', 'ngon', 'This soup is delicious.', 'Món súp này rất ngon.'],
+      ['ingredient', '/ɪnˈɡriːdiənt/', 'noun', 'nguyên liệu', 'Mix all the ingredients in a bowl.', 'Trộn tất cả nguyên liệu trong một cái tô.'],
+      ['recipe', '/ˈresəpi/', 'noun', 'công thức nấu ăn', 'My grandmother gave me this recipe.', 'Bà tôi đã cho tôi công thức này.'],
+      ['vegetarian', '/ˌvedʒəˈteriən/', 'noun', 'người ăn chay', 'She has been a vegetarian for years.', 'Cô ấy đã ăn chay nhiều năm.'],
+      ['order', '/ˈɔːrdər/', 'verb', 'gọi món', 'Are you ready to order?', 'Bạn đã sẵn sàng gọi món chưa?'],
+      ['spicy', '/ˈspaɪsi/', 'adjective', 'cay', 'Thai food is often very spicy.', 'Đồ ăn Thái thường rất cay.'],
+      ['dessert', '/dɪˈzɜːrt/', 'noun', 'món tráng miệng', 'Would you like some dessert?', 'Bạn có muốn dùng tráng miệng không?'],
+      ['takeaway', '/ˈteɪkəweɪ/', 'noun', 'đồ ăn mang về', 'Let\'s get a takeaway tonight.', 'Tối nay mình gọi đồ ăn mang về đi.'],
+      ['the bill', '/ðə bɪl/', 'phrase', 'hoá đơn', 'Can I have the bill, please?', 'Cho tôi xin hoá đơn được không?'],
+      ['grab a bite', '/ɡræb ə baɪt/', 'phrase', 'ăn nhanh một chút', 'Let\'s grab a bite before the movie.', 'Đi ăn nhanh gì đó trước khi xem phim nhé.'],
+    ],
+  },
+  {
+    id: 'work', name: 'Work & Office', icon: '💼', desc: 'Công sở, họp hành, email', level: 'Trung bình',
+    words: [
+      ['deadline', '/ˈdedlaɪn/', 'noun', 'hạn chót', 'The deadline is next Friday.', 'Hạn chót là thứ Sáu tuần sau.'],
+      ['meeting', '/ˈmiːtɪŋ/', 'noun', 'cuộc họp', 'We have a meeting at 10.', 'Chúng ta có cuộc họp lúc 10 giờ.'],
+      ['colleague', '/ˈkɑːliːɡ/', 'noun', 'đồng nghiệp', 'My colleagues are very friendly.', 'Đồng nghiệp của tôi rất thân thiện.'],
+      ['promotion', '/prəˈmoʊʃn/', 'noun', 'sự thăng chức', 'She got a promotion last month.', 'Cô ấy được thăng chức tháng trước.'],
+      ['salary', '/ˈsæləri/', 'noun', 'lương', 'The salary is paid monthly.', 'Lương được trả hàng tháng.'],
+      ['work overtime', '/wɜːrk ˈoʊvərtaɪm/', 'phrase', 'làm thêm giờ', 'I had to work overtime yesterday.', 'Hôm qua tôi phải làm thêm giờ.'],
+      ['schedule a meeting', '/ˈskedʒuːl ə ˈmiːtɪŋ/', 'phrase', 'sắp xếp một cuộc họp', 'Could you schedule a meeting for Monday?', 'Bạn sắp xếp một cuộc họp vào thứ Hai được không?'],
+      ['negotiate', '/nɪˈɡoʊʃieɪt/', 'verb', 'đàm phán', 'We need to negotiate the price.', 'Chúng ta cần đàm phán giá.'],
+      ['feedback', '/ˈfiːdbæk/', 'noun', 'phản hồi, góp ý', 'Thank you for your feedback.', 'Cảm ơn phản hồi của bạn.'],
+      ['in charge of', '/ɪn tʃɑːrdʒ ʌv/', 'phrase', 'phụ trách', 'She is in charge of marketing.', 'Cô ấy phụ trách mảng marketing.'],
+    ],
+  },
+  {
+    id: 'health', name: 'Health', icon: '🏥', desc: 'Sức khoẻ, bệnh viện, thể thao', level: 'Cơ bản',
+    words: [
+      ['headache', '/ˈhedeɪk/', 'noun', 'đau đầu', 'I have a terrible headache.', 'Tôi bị đau đầu kinh khủng.'],
+      ['medicine', '/ˈmedɪsn/', 'noun', 'thuốc', 'Take this medicine twice a day.', 'Uống thuốc này hai lần một ngày.'],
+      ['appointment', '/əˈpɔɪntmənt/', 'noun', 'lịch hẹn (khám)', 'I have a doctor\'s appointment at 3.', 'Tôi có lịch hẹn bác sĩ lúc 3 giờ.'],
+      ['exercise', '/ˈeksərsaɪz/', 'verb', 'tập thể dục', 'You should exercise every day.', 'Bạn nên tập thể dục mỗi ngày.'],
+      ['healthy', '/ˈhelθi/', 'adjective', 'khoẻ mạnh, lành mạnh', 'Eat healthy food.', 'Hãy ăn đồ ăn lành mạnh.'],
+      ['catch a cold', '/kætʃ ə koʊld/', 'phrase', 'bị cảm lạnh', 'I caught a cold last week.', 'Tuần trước tôi bị cảm lạnh.'],
+      ['prescription', '/prɪˈskrɪpʃn/', 'noun', 'đơn thuốc', 'The doctor wrote a prescription.', 'Bác sĩ đã kê đơn thuốc.'],
+      ['recover', '/rɪˈkʌvər/', 'verb', 'hồi phục', 'It took a week to recover.', 'Mất một tuần để hồi phục.'],
+      ['symptom', '/ˈsɪmptəm/', 'noun', 'triệu chứng', 'Fever is a common symptom.', 'Sốt là một triệu chứng phổ biến.'],
+      ['stay in shape', '/steɪ ɪn ʃeɪp/', 'phrase', 'giữ dáng, giữ sức khoẻ', 'Swimming helps me stay in shape.', 'Bơi giúp tôi giữ dáng.'],
+    ],
+  },
+  {
+    id: 'tech', name: 'Technology', icon: '💻', desc: 'Máy tính, internet, ứng dụng', level: 'Trung bình',
+    words: [
+      ['download', '/ˌdaʊnˈloʊd/', 'verb', 'tải xuống', 'You can download the app for free.', 'Bạn có thể tải ứng dụng miễn phí.'],
+      ['password', '/ˈpæswɜːrd/', 'noun', 'mật khẩu', 'Never share your password.', 'Đừng bao giờ chia sẻ mật khẩu.'],
+      ['update', '/ʌpˈdeɪt/', 'verb', 'cập nhật', 'Please update your software.', 'Vui lòng cập nhật phần mềm.'],
+      ['device', '/dɪˈvaɪs/', 'noun', 'thiết bị', 'This app works on any device.', 'Ứng dụng này chạy trên mọi thiết bị.'],
+      ['software', '/ˈsɔːftwer/', 'noun', 'phần mềm', 'The company develops software.', 'Công ty phát triển phần mềm.'],
+      ['log in', '/lɔːɡ ɪn/', 'phrase', 'đăng nhập', 'Log in to see your account.', 'Đăng nhập để xem tài khoản của bạn.'],
+      ['artificial intelligence', '/ˌɑːrtɪˈfɪʃl ɪnˈtelɪdʒəns/', 'phrase', 'trí tuệ nhân tạo', 'Artificial intelligence is changing the world.', 'Trí tuệ nhân tạo đang thay đổi thế giới.'],
+      ['screen', '/skriːn/', 'noun', 'màn hình', 'The screen is cracked.', 'Màn hình bị nứt.'],
+      ['wireless', '/ˈwaɪərləs/', 'adjective', 'không dây', 'I bought wireless headphones.', 'Tôi mua tai nghe không dây.'],
+      ['back up', '/bæk ʌp/', 'phrase', 'sao lưu', 'Back up your files regularly.', 'Hãy sao lưu tệp thường xuyên.'],
+    ],
+  },
+  {
+    id: 'emotions', name: 'Emotions', icon: '❤️', desc: 'Cảm xúc, tính cách', level: 'Cơ bản',
+    words: [
+      ['excited', '/ɪkˈsaɪtɪd/', 'adjective', 'hào hứng', 'I\'m so excited about the trip.', 'Tôi rất hào hứng về chuyến đi.'],
+      ['nervous', '/ˈnɜːrvəs/', 'adjective', 'lo lắng, hồi hộp', 'She was nervous before the exam.', 'Cô ấy hồi hộp trước kỳ thi.'],
+      ['disappointed', '/ˌdɪsəˈpɔɪntɪd/', 'adjective', 'thất vọng', 'He was disappointed with the result.', 'Anh ấy thất vọng với kết quả.'],
+      ['grateful', '/ˈɡreɪtfl/', 'adjective', 'biết ơn', 'I\'m grateful for your help.', 'Tôi biết ơn sự giúp đỡ của bạn.'],
+      ['confident', '/ˈkɑːnfɪdənt/', 'adjective', 'tự tin', 'Be confident when you speak.', 'Hãy tự tin khi bạn nói.'],
+      ['embarrassed', '/ɪmˈbærəst/', 'adjective', 'xấu hổ, ngượng', 'I felt embarrassed about my mistake.', 'Tôi thấy ngượng vì lỗi của mình.'],
+      ['calm down', '/kɑːm daʊn/', 'phrase', 'bình tĩnh lại', 'Calm down and take a deep breath.', 'Bình tĩnh lại và hít thở sâu.'],
+      ['over the moon', '/ˈoʊvər ðə muːn/', 'phrase', 'vui sướng tột độ', 'She was over the moon about the news.', 'Cô ấy vui sướng tột độ về tin đó.'],
+      ['jealous', '/ˈdʒeləs/', 'adjective', 'ghen tị', 'Don\'t be jealous of others.', 'Đừng ghen tị với người khác.'],
+      ['proud', '/praʊd/', 'adjective', 'tự hào', 'I\'m proud of you.', 'Tôi tự hào về bạn.'],
+    ],
+  },
+  {
+    id: 'shopping', name: 'Shopping', icon: '🛒', desc: 'Mua sắm, giá cả, thanh toán', level: 'Cơ bản',
+    words: [
+      ['discount', '/ˈdɪskaʊnt/', 'noun', 'giảm giá', 'There is a 20% discount today.', 'Hôm nay giảm giá 20%.'],
+      ['receipt', '/rɪˈsiːt/', 'noun', 'biên lai', 'Keep your receipt for a refund.', 'Giữ biên lai để được hoàn tiền.'],
+      ['expensive', '/ɪkˈspensɪv/', 'adjective', 'đắt', 'This bag is too expensive.', 'Cái túi này quá đắt.'],
+      ['bargain', '/ˈbɑːrɡən/', 'noun', 'món hời', 'These shoes were a real bargain.', 'Đôi giày này đúng là món hời.'],
+      ['try on', '/traɪ ɑːn/', 'phrase', 'thử (quần áo)', 'Can I try on this jacket?', 'Tôi thử chiếc áo khoác này được không?'],
+      ['cashier', '/kæˈʃɪr/', 'noun', 'thu ngân', 'Pay at the cashier, please.', 'Vui lòng thanh toán ở quầy thu ngân.'],
+      ['refund', '/ˈriːfʌnd/', 'noun', 'hoàn tiền', 'I asked for a refund.', 'Tôi yêu cầu hoàn tiền.'],
+      ['in stock', '/ɪn stɑːk/', 'phrase', 'còn hàng', 'Is this size in stock?', 'Cỡ này còn hàng không?'],
+      ['brand', '/brænd/', 'noun', 'nhãn hiệu', 'What brand is your phone?', 'Điện thoại của bạn nhãn hiệu gì?'],
+      ['window shopping', '/ˈwɪndoʊ ˈʃɑːpɪŋ/', 'phrase', 'đi ngắm hàng (không mua)', 'We went window shopping downtown.', 'Chúng tôi đi ngắm hàng ở trung tâm.'],
+    ],
+  },
+  {
+    id: 'weather', name: 'Weather', icon: '🌦️', desc: 'Thời tiết, mùa, khí hậu', level: 'Cơ bản',
+    words: [
+      ['forecast', '/ˈfɔːrkæst/', 'noun', 'dự báo', 'The forecast says rain tomorrow.', 'Dự báo nói ngày mai có mưa.'],
+      ['humid', '/ˈhjuːmɪd/', 'adjective', 'ẩm ướt', 'Summer here is hot and humid.', 'Mùa hè ở đây nóng và ẩm.'],
+      ['thunderstorm', '/ˈθʌndərstɔːrm/', 'noun', 'giông bão', 'A thunderstorm is coming.', 'Một cơn giông đang tới.'],
+      ['breeze', '/briːz/', 'noun', 'gió nhẹ', 'There is a cool breeze tonight.', 'Tối nay có gió nhẹ mát mẻ.'],
+      ['freezing', '/ˈfriːzɪŋ/', 'adjective', 'lạnh cóng', 'It\'s freezing outside!', 'Ngoài trời lạnh cóng!'],
+      ['sunny', '/ˈsʌni/', 'adjective', 'nắng', 'It will be sunny all week.', 'Cả tuần sẽ có nắng.'],
+      ['temperature', '/ˈtemprətʃər/', 'noun', 'nhiệt độ', 'The temperature dropped to 5 degrees.', 'Nhiệt độ giảm xuống 5 độ.'],
+      ['pour down', '/pɔːr daʊn/', 'phrase', 'mưa như trút', 'It started to pour down at noon.', 'Trời bắt đầu mưa như trút lúc trưa.'],
+      ['drought', '/draʊt/', 'noun', 'hạn hán', 'The drought lasted three months.', 'Đợt hạn hán kéo dài ba tháng.'],
+      ['under the weather', '/ˈʌndər ðə ˈweðər/', 'phrase', 'hơi mệt, không khoẻ', 'I\'m feeling a bit under the weather.', 'Tôi thấy hơi không khoẻ.'],
+    ],
+  },
+];
+
+export function packToWords(pack) {
+  return pack.words.map(([word, phonetic, pos, meaning, example, exampleVi]) => ({ word, phonetic, pos, meaning, example, exampleVi }));
+}

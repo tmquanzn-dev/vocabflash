@@ -1,0 +1,68 @@
+import { $ } from './utils.js';
+import { Auth } from './auth.js';
+import { Store } from './store.js';
+import { TTS } from './tts.js';
+import { setNavActive, renderSidebar, closeSidebar } from './shell.js';
+import { viewLanding } from './views/landing.js';
+import { viewAuth } from './views/auth.js';
+import { viewHome } from './views/home.js';
+import { viewTopic } from './views/topic.js';
+import { viewFlash } from './views/flashcards.js';
+import { viewReview } from './views/review.js';
+import { viewQuiz } from './views/quiz.js';
+import { viewSearch } from './views/search.js';
+import { viewSettings } from './views/settings.js';
+import { viewProfile } from './views/profile.js';
+import { viewMatch } from './views/match.js';
+import { viewLeaderboard } from './views/leaderboard.js';
+import { viewAudio } from './views/audio.js';
+
+/* Điều hướng theo hash: #/topic/<id>, #/quiz/<id>, ... */
+const PUBLIC_ROUTES = { landing: viewLanding, login: viewAuth, register: viewAuth };
+const APP_ROUTES = { home: viewHome, topic: viewTopic, flash: viewFlash, quiz: viewQuiz, match: viewMatch, audio: viewAudio, leaderboard: viewLeaderboard, review: viewReview, search: viewSearch, settings: viewSettings, profile: viewProfile };
+
+let cleanup = null;
+/** View đăng ký hàm dọn dẹp (gỡ phím tắt...) khi rời khỏi view */
+export function onLeave(fn) { cleanup = fn; }
+export function go(path) { location.hash = '#' + (path.startsWith('/') ? path : '/' + path); }
+
+export function parseHash() {
+  const parts = (location.hash || '#/').replace(/^#\/?/, '').split('/');
+  return { view: parts[0] || 'home', id: parts[1], parts };
+}
+
+export function render() {
+  if (cleanup) { cleanup(); cleanup = null; }
+  TTS.stop();
+  const { view, id, parts } = parseHash();
+  const loggedIn = !!Auth.user && !!Store.data;
+
+  if (!loggedIn) {
+    const fn = PUBLIC_ROUTES[view] || viewLanding;
+    if (!PUBLIC_ROUTES[view] && view !== 'home') { sessionStorage.setItem('vocabflash.redirect', location.hash); }
+    showPublic(true);
+    fn($('#public'), { view, id });
+    return;
+  }
+  if (PUBLIC_ROUTES[view]) {
+    // Khách vẫn được vào trang đăng nhập / đăng ký để nâng cấp tài khoản
+    if (Auth.user.guest && view !== 'landing') { showPublic(true); PUBLIC_ROUTES[view]($('#public'), { view, id }); return; }
+    go('/'); return;
+  }
+
+  showPublic(false);
+  setNavActive(view);
+  renderSidebar(['topic', 'flash', 'quiz', 'match', 'audio'].includes(view) ? id : null);
+  closeSidebar();
+  window.scrollTo(0, 0);
+  const fn = APP_ROUTES[view] || viewHome;
+  // Tạo lại #view để các listener của màn hình trước không còn dính lại
+  const old = $('#view'); const fresh = old.cloneNode(false); old.replaceWith(fresh);
+  fn(fresh, { view, id, parts });
+}
+
+function showPublic(isPublic) {
+  $('#public').hidden = !isPublic;
+  $('#app').hidden = isPublic;
+  document.body.classList.toggle('public', isPublic);
+}

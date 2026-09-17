@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="VocabFlash – học từ vựng tiếng Anh theo chủ đề tự tạo với flashcard, phát âm, quiz và ôn tập thông minh.">
+  <title>VocabFlash – Học từ vựng tiếng Anh</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎴</text></svg>">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/views.css">
+  <link rel="stylesheet" href="css/landing.css">
+</head>
+<body>
+  <!-- Màn hình chờ trong lúc khôi phục phiên đăng nhập & tải dữ liệu -->
+  <div id="splash"><div class="splash-logo">🎴</div><div class="splash-bar"><div></div></div></div>
+
+  <!-- Trang công khai: giới thiệu / đăng nhập / đăng ký -->
+  <div id="public" hidden></div>
+
+  <!-- Ứng dụng (sau khi đăng nhập) -->
+  <div class="app" id="app" hidden>
+    <aside class="sidebar" id="sidebar">
+      <div class="brand">
+        <span class="brand-logo">🎴</span>
+        <div>
+          <div class="brand-name">VocabFlash</div>
+          <div class="brand-sub">Học từ vựng tiếng Anh</div>
+        </div>
+      </div>
+
+      <nav class="nav">
+        <a href="#/" data-nav="home"><span>🏠</span> Trang chủ</a>
+        <a href="#/review" data-nav="review"><span>⏰</span> Ôn tập hôm nay <b class="badge" id="dueBadge"></b></a>
+        <a href="#/search" data-nav="search"><span>🔍</span> Tìm kiếm</a>
+        <a href="#/leaderboard" data-nav="leaderboard"><span>🏆</span> Bảng xếp hạng</a>
+        <a href="#/settings" data-nav="settings"><span>⚙️</span> Cài đặt</a>
+      </nav>
+
+      <div class="topics-head">
+        <span>Chủ đề của tôi</span>
+        <button class="btn-icon sm" id="btnNewTopic" title="Tạo chủ đề mới">＋</button>
+      </div>
+      <ul class="topic-list" id="topicList"></ul>
+
+      <div class="sidebar-foot">
+        <div class="sync-state" id="syncState"></div>
+        <div class="user-card" id="userCard"></div>
+      </div>
+    </aside>
+
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+    <main class="main">
+      <header class="topbar">
+        <button class="btn-icon" id="btnMenu" title="Menu">☰</button>
+        <div class="topbar-title" id="topbarTitle">Trang chủ</div>
+        <button class="btn-icon btn-theme" title="Đổi giao diện sáng/tối">🌙</button>
+      </header>
+      <section class="view" id="view"></section>
+    </main>
+  </div>
+
+  <div id="modalRoot"></div>
+  <div id="toast" class="toast"></div>
+
+  <script type="module" src="js/main.js?v=6"></script>
+</body>
+</html>

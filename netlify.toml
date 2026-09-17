@@ -1,0 +1,15 @@
+# Netlify: web tĩnh, không cần build
+[build]
+  publish = "."
+
+# Cache lâu cho CSS/JS (đổi ?v= trong index.html khi cập nhật), không cache trang chính
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "no-cache"
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
