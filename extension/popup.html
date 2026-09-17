@@ -21,10 +21,14 @@
   <!-- Đã đăng nhập -->
   <section id="main" hidden>
     <div class="user"><span id="userName"></span><button id="btnLogout" class="ghost" title="Đăng xuất">⏻</button></div>
-    <div class="how">Bôi đen từ trên trang web → <b>chuột phải</b> → <b>Thêm "…" vào VocabFlash</b></div>
+    <div class="how">Bôi đen trên trang web → <b>chuột phải</b> → <b>Thêm "…" vào VocabFlash</b> (1 từ) hoặc <b>Dịch đoạn này</b> (cả đoạn)</div>
     <label>Hoặc thêm nhanh</label>
     <div class="row"><input id="quickWord" placeholder="từ, cụm từ (nhiều từ cách nhau dấu phẩy)"><button id="btnQuick" class="primary">＋</button></div>
     <div id="mainMsg" class="msg"></div>
+    <label style="margin-top:10px">Dịch đoạn văn</label>
+    <textarea id="passage" rows="3" placeholder="Dán đoạn tiếng Anh vào đây (hoặc bôi đen trên trang → chuột phải → Dịch đoạn này)"></textarea>
+    <button id="btnTranslate" class="primary">🌐 Dịch</button>
+    <div id="trOut" class="tr" hidden></div>
     <div class="foot"><span id="pending" class="muted"></span><a id="openApp2" href="#" class="link">Mở Hộp thư từ ↗</a></div>
   </section>
 

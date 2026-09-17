@@ -169,6 +169,7 @@ supabase/functions/gemini/index.ts   Edge Function proxy Gemini (key bí mật �
 - Mỗi lần gõ tính vào Leitner như flashcard/quiz; có trong từng chủ đề (nút ⌨️) và trang chủ ("Gõ chính tả" cho tất cả từ)
 
 ### 🧩 Extension Chrome (`extension/`)
+- Bôi đen **cả đoạn** → chuột phải → **Dịch đoạn này (VocabFlash)**: thẻ nổi hiện ngay trên trang với bản dịch tiếng Việt + tối đa 6 từ khó trong đoạn, bấm ＋ để thêm từng từ vào Hộp thư từ (popup cũng có ô dán đoạn để dịch)
 - Bôi đen từ trên trang web → chuột phải → **Thêm "…" vào VocabFlash**; extension lấy câu chứa từ + link bài, **dịch nghĩa ngay** qua Edge Function `gemini` (phiên âm, loại từ, nghĩa theo ngữ cảnh, dịch câu – hiện trong thông báo), rồi gửi vào bảng `inbox_words` của tài khoản (REST Supabase, không cần thư viện). Popup có ô thêm nhanh (cũng dịch) và số từ đang chờ. Chưa deploy function thì vẫn thêm được, chỉ thiếu nghĩa.
 - Trên web, mục **📥 Hộp thư từ** (badge ở sidebar, cập nhật realtime) hiện các từ đó: **✨ AI điền nghĩa** theo ngữ cảnh (Gemini), **🔎 Tra từ điển** lấy IPA/audio, chọn chủ đề → thêm. Lý do dùng hộp thư thay vì ghi thẳng vào dữ liệu: dữ liệu học lưu dạng 1 khối JSON, extension ghi đè sẽ đụng với web đang mở.
 - **Bookmarklet** (không cần cài, mọi trình duyệt kể cả điện thoại): Cài đặt → kéo nút **➕ VocabFlash** lên thanh dấu trang; bôi đen từ trên trang bất kỳ → bấm nút → web mở `#/add?w=…&c=…` với từ + câu chứa từ điền sẵn, AI điền nghĩa, chọn chủ đề → lưu (chạy được cả chế độ khách / local vì lưu thẳng vào dữ liệu đang đăng nhập)

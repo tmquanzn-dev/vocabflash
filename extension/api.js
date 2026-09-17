@@ -30,6 +30,40 @@ export async function getToken() {
   return s;
 }
 
+/** Gọi Edge Function "gemini" (key Gemini nằm ở server) và trả về JSON đã parse. Ném lỗi kèm thông điệp dễ hiểu. */
+async function askGemini(prompt, session, timeoutMs = 60000, model = CONFIG.GEMINI_MODEL) {
+  const c = new AbortController(); const t = setTimeout(() => c.abort(), timeoutMs);
+  let r;
+  try { r = await fetch(`${CONFIG.SUPABASE_URL}/functions/v1/gemini`, { method: 'POST', signal: c.signal, headers: { ...H, Authorization: 'Bearer ' + session.access_token }, body: JSON.stringify({ model, prompt }) }); }
+  catch (e) { throw new Error(e.name === 'AbortError' ? 'AI không trả lời kịp – thử lại hoặc chọn đoạn ngắn hơn' : 'Không kết nối được: ' + e.message); }
+  finally { clearTimeout(t); }
+  if (r.status === 404) throw new Error('Chưa triển khai Edge Function "gemini" trên Supabase (xem README)');
+  if (r.status === 429) throw new Error('AI đang quá tải (hết hạn mức phút này) – thử lại sau ít giây');
+  if (!r.ok) { const d = await r.json().catch(() => ({})); throw new Error(d.error?.message || d.error || `AI lỗi HTTP ${r.status}`); }
+  const d = await r.json();
+  const raw = d.candidates?.[0]?.content?.parts?.map(p => p.text).join('') || '';
+  try { return JSON.parse(raw.replace(/^```(?:json)?\s*|\s*```$/g, '')); } catch { throw new Error('AI trả về dữ liệu không đọc được, thử lại'); }
+}
+
+/**
+ * Dịch cả đoạn văn sang tiếng Việt + chọn tối đa 6 từ khó trong đoạn.
+ * → { translation, words: [{ word, phonetic, pos, meaning, note }] }
+ */
+export async function translatePassage(text) {
+  const s = await getToken();
+  text = text.slice(0, 6000);
+  const prompt = `You are a translator for a Vietnamese learner of English.
+1) Translate the TEXT below into natural, fluent Vietnamese (keep paragraph breaks; do not add comments).
+2) Pick up to 6 useful difficult vocabulary items (CEFR B2 or above; single words, phrasal verbs or collocations; skip names and easy words) that appear in the TEXT.
+Return ONLY JSON: {"translation": "...", "words": [{"word": "dictionary form (keep phrases whole)", "phonetic": "IPA", "pos": "noun|verb|adjective|adverb|phrase|...", "meaning": "concise Vietnamese meaning as used in the text", "note": "short English definition"}]}
+TEXT:
+"""
+${text}
+"""`;
+  const out = await askGemini(prompt, s, 90000);
+  return { translation: String(out.translation || out.vi || '').trim(), words: (out.words || []).filter(w => w && w.word && w.meaning).map(w => ({ word: String(w.word).trim(), phonetic: String(w.phonetic || '').trim(), pos: String(w.pos || '').toLowerCase(), meaning: String(w.meaning).trim(), note: String(w.note || '').trim() })) };
+}
+
 /**
  * Dịch nghĩa nhiều từ trong MỘT lời gọi qua Edge Function "gemini" (key nằm ở server).
  * items: [{ word, context }] → mảng cùng thứ tự, phần tử null nếu không dịch được. Lỗi → toàn bộ null (vẫn thêm từ được).
@@ -46,12 +80,7 @@ export async function defineWords(items) {
 - "note": short English definition (max 15 words)
 Return ONLY a JSON array with exactly ${items.length} objects, same order as INPUT.
 INPUT: ${JSON.stringify(items.map(i => ({ word: i.word, context: (i.context || '').slice(0, 300) })))}`;
-    const c = new AbortController(); const t = setTimeout(() => c.abort(), 45000);
-    const r = await fetch(`${CONFIG.SUPABASE_URL}/functions/v1/gemini`, { method: 'POST', signal: c.signal, headers: { ...H, Authorization: 'Bearer ' + s.access_token }, body: JSON.stringify({ model: CONFIG.GEMINI_MODEL, prompt }) }).finally(() => clearTimeout(t));
-    if (!r.ok) return items.map(() => null);
-    const d = await r.json();
-    const raw = d.candidates?.[0]?.content?.parts?.map(p => p.text).join('') || '';
-    let out = JSON.parse(raw.replace(/^```(?:json)?\s*|\s*```$/g, ''));
+    let out = await askGemini(prompt, s, 45000);
     if (!Array.isArray(out)) out = out.items || out.words || [out];
     return items.map((it, i) => {
       const w = out[i] || out.find(x => x && x.word && String(x.word).toLowerCase() === it.word.toLowerCase());
