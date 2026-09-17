@@ -118,3 +118,10 @@ begin
     alter publication supabase_realtime add table public.inbox_words;
   end if;
 end $$;
+
+-- Extension dịch nghĩa sẵn (qua Edge Function gemini) và gửi kèm
+alter table public.inbox_words add column if not exists meaning    text default '';
+alter table public.inbox_words add column if not exists phonetic   text default '';
+alter table public.inbox_words add column if not exists pos        text default '';
+alter table public.inbox_words add column if not exists example_vi text default '';
+alter table public.inbox_words add column if not exists note       text default '';

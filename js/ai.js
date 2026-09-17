@@ -1,5 +1,6 @@
 import { fetchTimeout } from './utils.js?v=9';
-import { CONFIG } from './config.js?v=9';
+import { CONFIG, isCloudEnabled } from './config.js?v=9';
+import { Auth } from './auth.js?v=9';
 
 /**
  * AI trích xuất từ vựng: dùng Gemini API (Google AI Studio) với API key của chính người dùng, lưu trên máy này.
@@ -26,6 +27,9 @@ export const AI = {
   get ownKey() { try { return localStorage.getItem(LS_KEY) || ''; } catch { return ''; } },
   get key() { return this.ownKey || CONFIG.GEMINI_API_KEY || ''; },
   get usingDefault() { return !this.ownKey && !!CONFIG.GEMINI_API_KEY; },
+  // Không có key trong trình duyệt → gọi qua Supabase Edge Function "gemini" (key bí mật nằm ở server, mọi người dùng chung)
+  get usingProxy() { return !this.key && isCloudEnabled(); },
+  get available() { return !!this.key || isCloudEnabled(); },
   set key(v) { try { v ? localStorage.setItem(LS_KEY, v.trim()) : localStorage.removeItem(LS_KEY); } catch { /* ignore */ } },
   get model() { try { const m = localStorage.getItem(LS_MODEL); return MODEL_IDS.includes(m) ? m : this.defaultModel; } catch { return this.defaultModel; } },
   set model(v) { try { v ? localStorage.setItem(LS_MODEL, v) : localStorage.removeItem(LS_MODEL); } catch { /* ignore */ } },
@@ -46,12 +50,22 @@ export const AI = {
   async _ask(prompt, model = this.model) {
     let r;
     try {
-      r = await fetchTimeout(`${BASE}/models/${encodeURIComponent(model)}:generateContent`, AI_TIMEOUT, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': this.key },
-        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { responseMimeType: 'application/json', temperature: 0.3 } }),
-      });
+      if (this.key) {
+        r = await fetchTimeout(`${BASE}/models/${encodeURIComponent(model)}:generateContent`, AI_TIMEOUT, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-goog-api-key': this.key },
+          body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { responseMimeType: 'application/json', temperature: 0.3 } }),
+        });
+      } else if (isCloudEnabled()) {
+        r = await fetchTimeout(`${CONFIG.SUPABASE_URL}/functions/v1/gemini`, AI_TIMEOUT, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', apikey: CONFIG.SUPABASE_ANON_KEY, Authorization: 'Bearer ' + (Auth.accessToken || CONFIG.SUPABASE_ANON_KEY) },
+          body: JSON.stringify({ model, prompt }),
+        });
+        if (r.status === 404) throw Object.assign(new Error('Chưa triển khai Edge Function "gemini" trên Supabase (xem supabase/functions/gemini/index.ts) – hoặc dán key riêng ở trang AI.'), { code: 'noproxy' });
+      } else throw new Error('Chưa có Gemini API key.');
     } catch (e) {
+      if (e.code === 'noproxy') throw e;
       if (e.name === 'AbortError' || /abort/i.test(e.message)) throw new Error(`Model "${model}" không trả lời trong ${AI_TIMEOUT / 60000} phút. Hãy chọn model flash / flash-lite (nhanh hơn nhiều) hoặc rút ngắn đoạn văn.`);
       throw new Error('Không kết nối được tới Gemini: ' + e.message);
     }
@@ -74,7 +88,7 @@ export const AI = {
    * → { title, words: [{ word, phonetic, pos, meaning, example, exampleVi, note, cefr }] }
    */
   async extract({ text, level = 'B2-C1', max = 20 }) {
-    if (!this.key) throw new Error('Chưa có Gemini API key. Lấy key miễn phí tại aistudio.google.com/apikey rồi dán vào ô bên trên.');
+    if (!this.available) throw new Error('Chưa có Gemini API key. Lấy key miễn phí tại aistudio.google.com/apikey rồi dán vào ô bên trên.');
     try { return await this._extract({ text, level, max, model: this.model }); }
     catch (e) {
       // Model đã lưu không còn tồn tại → tự quay về model mặc định rồi thử lại một lần
@@ -120,7 +134,7 @@ ${text}
    * → [{ word, phonetic, pos, meaning, exampleVi, note }] theo đúng thứ tự
    */
   async defineWords(items) {
-    if (!this.key) throw new Error('Chưa có Gemini API key.');
+    if (!this.available) throw new Error('Chưa có Gemini API key.');
     const prompt = `You are an English–Vietnamese dictionary for a Vietnamese learner. For each item below give:
 - "word": the dictionary/base form of the item (keep phrasal verbs / collocations as they are)
 - "phonetic": IPA, e.g. "/rɪˈzɪliənt/"

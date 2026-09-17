@@ -1,5 +1,5 @@
 import { CONFIG } from './config.js';
-import { getSession, login, logout, addWord, pendingCount } from './api.js';
+import { getSession, login, logout, addWord, defineWord, pendingCount } from './api.js';
 
 const $ = s => document.querySelector(s);
 const msg = (el, text, ok) => { el.textContent = text; el.className = 'msg ' + (text ? (ok ? 'ok' : 'err') : ''); };
@@ -30,8 +30,10 @@ const quick = async () => {
   const b = $('#btnQuick'); b.disabled = true;
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    await addWord({ word, url: tab?.url && /^https?:/.test(tab.url) ? tab.url : '', title: tab?.title || '' });
-    $('#quickWord').value = ''; msg($('#mainMsg'), `Đã thêm "${word}"`, true); render();
+    msg($('#mainMsg'), '⏳ Đang dịch...', true);
+    const def = await defineWord(word);
+    await addWord({ word, url: tab?.url && /^https?:/.test(tab.url) ? tab.url : '', title: tab?.title || '', def });
+    $('#quickWord').value = ''; msg($('#mainMsg'), def ? `✔ ${word} ${def.phonetic} = ${def.meaning}` : `Đã thêm "${word}"`, true); render();
   } catch (e) { msg($('#mainMsg'), e.message, false); }
   finally { b.disabled = false; }
 };

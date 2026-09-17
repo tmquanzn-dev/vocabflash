@@ -5,7 +5,7 @@ import { go } from '../router.js?v=9';
 import { AI, AI_MODELS, AI_LEVELS, AI_TIMEOUT } from '../ai.js?v=9';
 import { lookupWord } from '../dictionary.js?v=9';
 
-const keyState = () => AI.ownKey ? '✔ Key riêng' : AI.usingDefault ? '✔ Key mặc định' : 'Chưa có key';
+const keyState = () => AI.ownKey ? '✔ Key riêng' : AI.usingDefault ? '✔ Key mặc định' : AI.usingProxy ? '✔ Dùng AI của VocabFlash' : 'Chưa có key';
 // Giữ kết quả khi quay lại trang trong cùng phiên
 const st = { src: 'text', text: '', url: '', level: 'B2-C1', max: 20, result: null, picked: new Set() };
 
@@ -18,11 +18,11 @@ export function viewAI(el) {
     </div>
     <div class="card ai-key">
       <div class="row between">
-        <div><b>🔑 Gemini API key</b><div class="small muted">${AI.usingDefault ? 'Đang dùng key sẵn có của VocabFlash – bạn dùng được ngay. Muốn dùng hạn mức riêng thì dán key của bạn (miễn phí tại ' : 'Miễn phí tại '}<a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener" style="color:var(--primary)">aistudio.google.com/apikey</a>${AI.usingDefault ? ')' : ''} · key riêng chỉ lưu trên trình duyệt này, không gửi lên máy chủ của VocabFlash.</div></div>
-        <span class="chip ${AI.key ? 'good' : 'bad'}" id="aiKeyState">${keyState()}</span>
+        <div><b>🔑 Gemini API key</b><div class="small muted">${AI.usingDefault || AI.usingProxy ? 'AI của VocabFlash sẵn sàng – bạn dùng được ngay, không cần key. Muốn dùng hạn mức riêng thì dán key của bạn (miễn phí tại ' : 'Miễn phí tại '}<a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener" style="color:var(--primary)">aistudio.google.com/apikey</a>${AI.usingDefault ? ')' : ''} · key riêng chỉ lưu trên trình duyệt này, không gửi lên máy chủ của VocabFlash.</div></div>
+        <span class="chip ${AI.available ? 'good' : 'bad'}" id="aiKeyState">${keyState()}</span>
       </div>
       <div class="row mt">
-        <input class="input" type="password" id="aiKey" placeholder="${AI.usingDefault ? 'Dán key riêng (không bắt buộc)' : 'AIza...'}" value="${esc(AI.ownKey)}" style="max-width:360px" autocomplete="off">
+        <input class="input" type="password" id="aiKey" placeholder="${AI.usingDefault || AI.usingProxy ? 'Dán key riêng (không bắt buộc)' : 'AIza...'}" value="${esc(AI.ownKey)}" style="max-width:360px" autocomplete="off">
         <select class="input" id="aiModel" style="width:auto">${AI_MODELS.map(m => `<option value="${m.id}" ${m.id === AI.model ? 'selected' : ''}>${esc(m.label)}</option>`).join('')}</select>
         <button class="btn btn-sm" id="aiSaveKey">💾 Lưu key</button>
       </div>
@@ -41,7 +41,7 @@ export function viewAI(el) {
     </div>
     <div id="aiResult" class="mt"></div>`;
 
-  $('#aiSaveKey', el).addEventListener('click', () => { AI.key = $('#aiKey', el).value; AI.model = $('#aiModel', el).value; const c = $('#aiKeyState', el); c.textContent = keyState(); c.className = 'chip ' + (AI.key ? 'good' : 'bad'); toast(AI.ownKey ? 'Đã lưu key riêng trên máy này' : AI.usingDefault ? 'Đã bỏ key riêng – dùng key mặc định' : 'Đã xoá key'); });
+  $('#aiSaveKey', el).addEventListener('click', () => { AI.key = $('#aiKey', el).value; AI.model = $('#aiModel', el).value; const c = $('#aiKeyState', el); c.textContent = keyState(); c.className = 'chip ' + (AI.available ? 'good' : 'bad'); toast(AI.ownKey ? 'Đã lưu key riêng trên máy này' : AI.available ? 'Đã bỏ key riêng – dùng AI của VocabFlash' : 'Đã xoá key'); });
   $('#aiModel', el).addEventListener('change', e => { AI.model = e.target.value; });
   $('#aiSrc', el).addEventListener('click', e => { const b = e.target.closest('[data-src]'); if (!b) return; st.src = b.dataset.src; $$('[data-src]', el).forEach(x => x.classList.toggle('active', x === b)); $('#aiTextBox', el).hidden = st.src !== 'text'; $('#aiUrlBox', el).hidden = st.src !== 'url'; });
   $('#aiText', el).addEventListener('input', e => { st.text = e.target.value; });

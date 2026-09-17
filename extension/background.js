@@ -1,4 +1,4 @@
-import { addWord } from './api.js';
+import { addWord, defineWord } from './api.js';
 
 /* Menu chuột phải "Thêm vào VocabFlash" khi bôi đen chữ trên trang web */
 chrome.runtime.onInstalled.addListener(() => {
@@ -17,8 +17,9 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
     context = r?.result || '';
   } catch { /* ví dụ: trang chrome:// hoặc PDF */ }
   try {
-    await addWord({ word, context, url: info.pageUrl || tab.url || '', title: tab.title || '' });
-    notify(`Đã thêm "${word}" vào Hộp thư từ VocabFlash`);
+    const def = await defineWord(word, context); // dịch nghĩa (nếu Edge Function đã triển khai)
+    await addWord({ word, context, url: info.pageUrl || tab.url || '', title: tab.title || '', def });
+    notify(def ? `${word} ${def.phonetic ? def.phonetic + ' ' : ''}= ${def.meaning}` : `Đã thêm "${word}" vào Hộp thư từ VocabFlash`, def ? 'Đã thêm vào VocabFlash' : undefined);
   } catch (e) { notify('Không thêm được: ' + e.message); }
 });
 
@@ -37,8 +38,8 @@ function sentenceAround(word) {
   } catch { return ''; }
 }
 
-function notify(message) {
-  chrome.notifications.create({ type: 'basic', iconUrl: 'icon128.png', title: 'VocabFlash', message, silent: true }, id => {
-    setTimeout(() => chrome.notifications.clear(id), 4000);
+function notify(message, title = 'VocabFlash') {
+  chrome.notifications.create({ type: 'basic', iconUrl: 'icon128.png', title, message, silent: true }, id => {
+    setTimeout(() => chrome.notifications.clear(id), 6000);
   });
 }

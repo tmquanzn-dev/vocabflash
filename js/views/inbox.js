@@ -30,7 +30,7 @@ export function viewInbox(el) {
           <div class="row"><button class="btn btn-sm" data-act="ai" title="Dùng Gemini điền phiên âm, loại từ, nghĩa theo ngữ cảnh">✨ AI điền nghĩa tất cả</button><button class="btn btn-sm" data-act="dict" title="Tra từ điển lấy phiên âm & audio">🔎 Tra từ điển</button></div>
         </div>
         <div class="table-wrap"><table style="min-width:720px"><thead><tr><th style="width:36px"><input type="checkbox" id="ibAll" checked></th><th>Từ</th><th>Phiên âm</th><th>Nghĩa tiếng Việt *</th><th>Ngữ cảnh</th><th style="width:40px"></th></tr></thead>
-          <tbody>${items.map(it => { const d = drafts[it.id] || (drafts[it.id] = { word: it.word, phonetic: '', pos: '', meaning: '', exampleVi: '', note: '', audio: '' }); return `<tr data-id="${it.id}">
+          <tbody>${items.map(it => { const d = drafts[it.id] || (drafts[it.id] = { word: it.word, phonetic: it.phonetic || '', pos: it.pos || '', meaning: it.meaning || '', exampleVi: it.example_vi || '', note: it.note || '', audio: '' }); return `<tr data-id="${it.id}">
             <td><input type="checkbox" class="sel" checked></td>
             <td><input class="input ib-word" value="${esc(d.word)}" style="min-width:140px">${d.pos ? `<div class="small muted">${esc(d.pos)}</div>` : ''}</td>
             <td><input class="input ib-phon ipa" value="${esc(d.phonetic)}" placeholder="/…/" style="min-width:120px">${d.audio ? '<div class="small muted">🎧 có audio</div>' : ''}</td>

@@ -130,6 +130,7 @@ js/
 extension/            extension Chrome (Manifest V3): manifest, background (menu chuột phải), popup (đăng nhập, thêm nhanh), api (REST Supabase)
 netlify.toml / vercel.json   cấu hình header khi deploy (tuỳ chọn)
 supabase/schema.sql   bảng + policy RLS
+supabase/functions/gemini/index.ts   Edge Function proxy Gemini (key bí mật ở server)
 ```
 
 ## Chức năng
@@ -148,7 +149,7 @@ supabase/schema.sql   bảng + policy RLS
 - **🔥 Mục tiêu ngày, streak, biểu đồ 7 ngày**, từ hay sai nhất
 - **Tìm kiếm** theo từ tiếng Anh và/hoặc nghĩa tiếng Việt (`Ctrl+K`), báo "chưa có từ" và cho thêm ngay; **dark mode**, **xuất / nhập JSON**, responsive mobile
 - **Xoá nhiều**: trong chủ đề bấm **☑️ Chọn** để tick nhiều từ (hoặc chọn tất cả) rồi xoá, hoặc **🗑️ Xoá tất cả** từ; trang chủ bấm **☑️ Quản lý** để chọn / xoá nhiều chủ đề hoặc xoá tất cả chủ đề
-- **🎧 Audition – chế độ chỉ nghe**: tick "🙈 Chỉ nghe" để ẩn từ / phiên âm / nghĩa, chỉ còn âm thanh; bấm 👁 để xem tạm từ hiện tại
+- **🎧 Audition – chế độ chỉ nghe (nghe – chép)**: tick "🙈 Chỉ nghe" để ẩn từ / phiên âm / nghĩa; có ô **gõ từ nghe được** → đúng ✅ hiện đáp án rồi tự sang từ tiếp, sai ❌ cho gõ lại (sai 2 lần có gợi ý chữ cái đầu); điểm đúng/sai cả phiên; lần gõ đầu tính vào lịch ôn; 👁 Xem = tính là chưa nhớ
 
 ### 📐 Ngữ pháp – 13 thì cơ bản (`#/grammar`)
 - Hiện tại đơn / tiếp diễn / hoàn thành / hoàn thành tiếp diễn · Quá khứ (4 thì) · Tương lai (4 thì) · Tương lai gần (be going to)
@@ -168,7 +169,7 @@ supabase/schema.sql   bảng + policy RLS
 - Mỗi lần gõ tính vào Leitner như flashcard/quiz; có trong từng chủ đề (nút ⌨️) và trang chủ ("Gõ chính tả" cho tất cả từ)
 
 ### 🧩 Extension Chrome (`extension/`)
-- Bôi đen từ trên trang web → chuột phải → **Thêm "…" vào VocabFlash**; extension lấy luôn câu chứa từ + link bài, gửi vào bảng `inbox_words` của tài khoản (REST Supabase, không cần thư viện). Popup có ô thêm nhanh và số từ đang chờ.
+- Bôi đen từ trên trang web → chuột phải → **Thêm "…" vào VocabFlash**; extension lấy câu chứa từ + link bài, **dịch nghĩa ngay** qua Edge Function `gemini` (phiên âm, loại từ, nghĩa theo ngữ cảnh, dịch câu – hiện trong thông báo), rồi gửi vào bảng `inbox_words` của tài khoản (REST Supabase, không cần thư viện). Popup có ô thêm nhanh (cũng dịch) và số từ đang chờ. Chưa deploy function thì vẫn thêm được, chỉ thiếu nghĩa.
 - Trên web, mục **📥 Hộp thư từ** (badge ở sidebar, cập nhật realtime) hiện các từ đó: **✨ AI điền nghĩa** theo ngữ cảnh (Gemini), **🔎 Tra từ điển** lấy IPA/audio, chọn chủ đề → thêm. Lý do dùng hộp thư thay vì ghi thẳng vào dữ liệu: dữ liệu học lưu dạng 1 khối JSON, extension ghi đè sẽ đụng với web đang mở.
 - **Bookmarklet** (không cần cài, mọi trình duyệt kể cả điện thoại): Cài đặt → kéo nút **➕ VocabFlash** lên thanh dấu trang; bôi đen từ trên trang bất kỳ → bấm nút → web mở `#/add?w=…&c=…` với từ + câu chứa từ điền sẵn, AI điền nghĩa, chọn chủ đề → lưu (chạy được cả chế độ khách / local vì lưu thẳng vào dữ liệu đang đăng nhập)
 - Cài extension: người dùng tải `extension/vocabflash-extension.zip` từ trang Cài đặt (hoặc lấy thư mục `extension/`) → `chrome://extensions` → Developer mode → **Load unpacked**. Trước khi deploy, sửa `extension/config.js` (`APP_URL` = địa chỉ web thật) rồi chạy `python extension/build-zip.py` để cập nhật file zip. Đăng nhập bằng email + mật khẩu; tài khoản Google thì vào **Cài đặt → Đặt mật khẩu** trước.
@@ -178,4 +179,5 @@ supabase/schema.sql   bảng + policy RLS
 - Dán **đoạn văn** hoặc **link bài báo** tiếng Anh → AI (Gemini) lọc ra từ khó theo mức chọn (B1–B2 / B2–C1 / C1–C2), trả về phiên âm IPA, loại từ, **nghĩa tiếng Việt theo đúng ngữ cảnh bài**, câu ví dụ trích từ bài + bản dịch, định nghĩa EN, mức CEFR
 - Tick chọn từ muốn giữ → **tạo chủ đề mới** (AI gợi ý tên) hoặc **thêm vào chủ đề có sẵn**; tuỳ chọn tra thêm audio người thật từ từ điển
 - Cần **Gemini API key** (miễn phí tại https://aistudio.google.com/apikey). Có 2 nguồn: key mặc định của web (người dùng không phải làm gì) hoặc key riêng người dùng dán vào ô trên trang (lưu `localStorage`, ưu tiên hơn). Lời gọi đi thẳng từ trình duyệt tới Google (web tĩnh không có server trung gian). Link bài báo được đọc qua dịch vụ công khai `r.jina.ai`; trang chặn bot thì dán văn bản trực tiếp
-- **Key mặc định không nằm trong git** (GitHub Push Protection chặn): chạy local → copy `js/secrets.example.js` thành `js/secrets.js` và điền key (file đã trong `.gitignore`). Khi deploy → đặt biến môi trường **`GEMINI_API_KEY`** trong Netlify (*Site configuration → Environment variables*) hoặc Vercel (*Settings → Environment Variables*); `netlify.toml` / `vercel.json` đã có lệnh build sinh `js/secrets.js` từ biến đó. Deploy bằng kéo thả thư mục thì `secrets.js` trên máy được đưa lên cùng, không cần làm gì. Vì key vẫn tới trình duyệt người dùng, nên vào Google Cloud Console giới hạn key theo **HTTP referrer** (domain web)
+- **Cách khuyên dùng – Edge Function `gemini`** (key nằm ở server Supabase, mọi người dùng chung, extension cũng dịch được): Supabase Dashboard → **Edge Functions → Deploy a new function → Via Editor**, tên `gemini`, dán nội dung `supabase/functions/gemini/index.ts` → Deploy. Rồi **Edge Functions → Secrets** thêm `GEMINI_API_KEY` = key của bạn. Web tự dùng function này khi trình duyệt không có key (chip "✔ Dùng AI của VocabFlash"). Function chỉ nhận 2 model cho phép và giới hạn độ dài prompt; muốn chặn khách (chỉ người đăng nhập) thì kiểm tra JWT trong function.
+- Cách khác – key trong trình duyệt, **không nằm trong git** (GitHub Push Protection chặn): chạy local → copy `js/secrets.example.js` thành `js/secrets.js` và điền key (file đã trong `.gitignore`). Khi deploy → đặt biến môi trường **`GEMINI_API_KEY`** trong Netlify (*Site configuration → Environment variables*) hoặc Vercel (*Settings → Environment Variables*); `netlify.toml` / `vercel.json` đã có lệnh build sinh `js/secrets.js` từ biến đó. Deploy bằng kéo thả thư mục thì `secrets.js` trên máy được đưa lên cùng, không cần làm gì. Vì key vẫn tới trình duyệt người dùng, nên vào Google Cloud Console giới hạn key theo **HTTP referrer** (domain web)
