@@ -106,7 +106,9 @@ code { background: var(--surface-2); padding: 1px 6px; border-radius: 5px; font-
 .link:disabled { color: var(--muted); cursor: default; text-decoration: none; }
 
 /* ============ Cards, badges, misc ============ */
-.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.25s; }
+/* Hiệu ứng nhấc thẻ chỉ áp dụng cho các thẻ bấm được (chủ đề, thì, chợ, donate) – không áp dụng cho thẻ quiz / audition / cài đặt */
+.topic-card:hover, .tense-card:hover, .ex-card:hover, .section-link:hover, .donate-card:hover { transform: translateY(-4px); box-shadow: var(--shadow); border-color: rgba(124, 127, 251, 0.3); }
 .pos { font-size: .72rem; padding: 1px 7px; border-radius: 6px; background: var(--surface-2); border: 1px solid var(--border); color: var(--muted); font-weight: 600; }
 .lvl { display: inline-block; font-size: .72rem; padding: 2px 8px; border-radius: 999px; font-weight: 700; }
 .lvl-0 { background: var(--surface-2); color: var(--muted); }

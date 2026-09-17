@@ -1,11 +1,12 @@
-import { $, $$, toast } from './utils.js';
-import { Auth } from './auth.js';
-import { Store } from './store.js';
-import { TTS } from './tts.js';
-import { applyTheme, toggleTheme, toggleSidebar, closeSidebar, renderSyncState, renderUserCard } from './shell.js';
-import { closeModal, isModalOpen } from './modal.js';
-import { topicForm } from './forms.js';
-import { render, parseHash } from './router.js';
+import { $, $$, toast } from './utils.js?v=9';
+import { Auth } from './auth.js?v=9';
+import { Store } from './store.js?v=9';
+import { TTS } from './tts.js?v=9';
+import { applyTheme, toggleTheme, toggleSidebar, closeSidebar, renderSyncState, renderUserCard } from './shell.js?v=9';
+import { closeModal, isModalOpen, confirmModal } from './modal.js?v=9';
+import { topicForm } from './forms.js?v=9';
+import { render, parseHash } from './router.js?v=9';
+import { Inbox } from './inbox.js?v=9';
 
 /* Điểm khởi động ứng dụng */
 async function boot() {
@@ -15,6 +16,17 @@ async function boot() {
 
   // Nút trong khung giao diện
   $('#btnNewTopic').addEventListener('click', () => topicForm());
+  // Nút 🗑️ trong danh sách chủ đề ở sidebar
+  $('#topicList').addEventListener('click', async e => {
+    const b = e.target.closest('[data-del-topic]'); if (!b) return;
+    e.preventDefault(); e.stopPropagation();
+    const t = Store.topic(b.dataset.delTopic); if (!t) return;
+    const n = Store.wordsOf(t.id).length;
+    if (await confirmModal('Xoá chủ đề?', `Chủ đề "${t.name}" và ${n} từ vựng bên trong sẽ bị xoá vĩnh viễn.`, 'Xoá chủ đề')) {
+      Store.deleteTopic(t.id); toast(`Đã xoá "${t.name}"`);
+      if (location.hash.includes('/' + t.id)) location.hash = '#/'; else render();
+    }
+  });
   $$('.btn-theme').forEach(b => b.addEventListener('click', toggleTheme));
   $('#btnMenu').addEventListener('click', toggleSidebar);
   $('#sidebarBackdrop').addEventListener('click', closeSidebar);
@@ -41,7 +53,7 @@ async function boot() {
 
   await Auth.init();
   if (oauthReturn || oauthError) history.replaceState(null, '', location.pathname + '#/');
-  if (Auth.user) await Store.open(Auth.user);
+  if (Auth.user) { await Store.open(Auth.user); Inbox.init(); }
   hideSplash();
   if (Auth.cloudError) toast('⚠️ ' + Auth.cloudError, 6000);
   if (oauthError) toast('Đăng nhập thất bại: ' + oauthError, 6000);
@@ -52,14 +64,14 @@ async function boot() {
     if (user) {
       if (Store.user && Store.user.id === user.id) { renderUserCard(); return; } // chỉ cập nhật hồ sơ
       closeModal();
-      Store.close();
-      await Store.open(user);
+      Store.close(); Inbox.close();
+      await Store.open(user); Inbox.init();
       const redirect = sessionStorage.getItem('vocabflash.redirect'); sessionStorage.removeItem('vocabflash.redirect');
       toast(`Xin chào, ${user.name}!`);
       goAndRender(redirect && !/#\/(login|register|landing)/.test(redirect) ? redirect : '#/');
     } else {
       closeModal();
-      Store.close();
+      Store.close(); Inbox.close();
       goAndRender('#/');
     }
   });

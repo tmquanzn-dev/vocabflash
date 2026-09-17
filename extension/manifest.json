@@ -1,0 +1,11 @@
+{
+  "manifest_version": 3,
+  "name": "VocabFlash – Thêm từ vựng",
+  "description": "Bôi đen một từ trên bất kỳ trang web nào → chuột phải → Thêm vào VocabFlash. Từ sẽ về Hộp thư từ trong tài khoản của bạn.",
+  "version": "1.0.0",
+  "icons": { "16": "icon16.png", "48": "icon48.png", "128": "icon128.png" },
+  "action": { "default_popup": "popup.html", "default_title": "VocabFlash", "default_icon": { "16": "icon16.png", "48": "icon48.png" } },
+  "background": { "service_worker": "background.js", "type": "module" },
+  "permissions": ["contextMenus", "storage", "notifications", "activeTab", "scripting"],
+  "host_permissions": ["https://*.supabase.co/*"]
+}

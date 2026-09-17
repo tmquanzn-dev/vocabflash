@@ -1,4 +1,4 @@
-import { normalizeAnswer } from './utils.js';
+import { normalizeAnswer } from './utils.js?v=9';
 
 /* Luyện phát âm: nhận dạng giọng nói (Chrome / Edge / Safari) + ghi âm để nghe lại.
    listen(word) → Promise<{ heard, ok, score, audioUrl }> */

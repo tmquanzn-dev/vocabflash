@@ -1,7 +1,7 @@
-import { $ } from '../utils.js';
-import { Auth } from '../auth.js';
-import { CONFIG } from '../config.js';
-import { toggleTheme } from '../shell.js';
+import { $ } from '../utils.js?v=9';
+import { Auth } from '../auth.js?v=9';
+import { CONFIG } from '../config.js?v=9';
+import { toggleTheme } from '../shell.js?v=9';
 
 /* Trang giới thiệu cho người chưa đăng nhập */
 export function viewLanding(el) {
@@ -72,6 +72,12 @@ export function viewLanding(el) {
       <div class="row" style="justify-content:center;margin-top:28px">
         <a class="btn btn-primary btn-lg" href="#/register">Tạo tài khoản miễn phí</a>
       </div>
+    </section>
+
+    <section class="how" style="background: linear-gradient(135deg, var(--surface-2), var(--primary-soft)); border-radius: 24px; margin: 40px auto; max-width: 600px; padding: 40px 20px; text-align: center; border: 1px solid var(--primary-2); box-shadow: var(--shadow);">
+      <h2 style="color: var(--primary); margin-bottom: 8px;">💖 Donate Cho Anh Quân</h2>
+      <p class="muted" style="margin-bottom: 24px;">Nếu bạn thấy dự án này hữu ích, hãy ủng hộ tác giả để duy trì và phát triển thêm nhé!</p>
+      <img src="img/donate-qr.png" alt="QR Donate" style="max-width: 240px; border-radius: 12px; display: block; margin: 0 auto; box-shadow: 0 8px 24px rgba(0,0,0,0.15); border: 4px solid var(--surface); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
     </section>
 
     <footer class="land-footer muted small">

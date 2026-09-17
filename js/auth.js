@@ -1,6 +1,6 @@
-import { CONFIG, isCloudEnabled } from './config.js';
-import { getSupabase } from './supabase.js';
-import { uid, isValidEmail, fetchTimeout } from './utils.js';
+import { CONFIG, isCloudEnabled } from './config.js?v=9';
+import { getSupabase } from './supabase.js?v=9';
+import { uid, isValidEmail, fetchTimeout } from './utils.js?v=9';
 
 /**
  * Xác thực người dùng.
@@ -63,6 +63,7 @@ export const Auth = {
       this.sb.auth.onAuthStateChange((_event, s) => {
         this.accessToken = s?.access_token || null;
         const u = mapSupabaseUser(s?.user);
+        if (!u && this.user?.guest) return; // sự kiện INITIAL_SESSION (không có phiên Supabase) không được đá khách ra
         if ((u?.id || null) !== (this.user?.id || null)) { this.user = u; this._emit(); }
       });
     } else {
@@ -187,6 +188,14 @@ export const Auth = {
       const u = users.find(x => x.id === this.user.id); if (u) { u.name = name; writeJSON(LS_USERS, users); }
     }
     this.user.name = name; this._emit();
+  },
+
+  /** Đặt / đổi mật khẩu cho tài khoản đang đăng nhập (để tài khoản Google cũng đăng nhập được extension) */
+  async setPassword(password) {
+    if (!password || password.length < 6) throw new Error('Mật khẩu cần ít nhất 6 ký tự');
+    if (this.mode !== 'cloud' || !this.user || this.user.guest) throw new Error('Cần đăng nhập tài khoản (chế độ cloud)');
+    const { error } = await this.sb.auth.updateUser({ password });
+    if (error) throw new Error(error.message);
   },
 
   async signOut() {

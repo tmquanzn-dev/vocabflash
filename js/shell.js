@@ -1,7 +1,8 @@
-import { $, $$, esc, initials } from './utils.js';
-import { Store } from './store.js';
-import { Auth } from './auth.js';
-import { CONFIG } from './config.js';
+import { $, $$, esc, initials } from './utils.js?v=9';
+import { Store } from './store.js?v=9';
+import { Auth } from './auth.js?v=9';
+import { CONFIG } from './config.js?v=9';
+import { Inbox } from './inbox.js?v=9';
 
 /* Khung giao diện chung: sidebar, thanh tiêu đề, giao diện sáng/tối, trạng thái đồng bộ */
 
@@ -34,10 +35,11 @@ export function renderSidebar(activeTopicId) {
   const topics = Store.topics();
   $('#topicList').innerHTML = topics.length
     ? topics.map(t => `<li><a href="#/topic/${t.id}" class="${activeTopicId === t.id ? 'active' : ''}">
-        <span class="t-icon">${t.icon}</span><span class="t-name">${esc(t.name)}</span><span class="t-count">${Store.wordsOf(t.id).length}</span></a></li>`).join('')
+        <span class="t-icon">${t.icon}</span><span class="t-name">${esc(t.name)}</span><span class="t-count">${Store.wordsOf(t.id).length}</span><button class="t-del" data-del-topic="${t.id}" title="Xoá chủ đề ${esc(t.name)}">🗑️</button></a></li>`).join('')
     : '<li class="empty">Chưa có chủ đề nào. Bấm ＋ để tạo.</li>';
   const due = Store.dueWords().length;
   $('#dueBadge').textContent = due ? due : '';
+  Inbox.renderBadge();
   renderUserCard();
   renderSyncState(Store.syncState);
 }

@@ -31,6 +31,8 @@
 .brand-name { font-weight: 700; font-size: 1.15rem; }
 .brand-sub { font-size: .8rem; color: var(--muted); }
 .nav { padding: 6px 12px; display: flex; flex-direction: column; gap: 2px; }
+.nav-head { padding: 12px 12px 4px; font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+.nav-head:first-child { padding-top: 4px; }
 .nav a, .topic-list a {
   display: flex; align-items: center; gap: 10px;
   padding: 9px 12px; border-radius: 10px;
@@ -53,6 +55,10 @@
 .topic-list .t-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .topic-list .t-count { font-size: .75rem; color: var(--muted); }
 .topic-list .empty { padding: 8px 12px; color: var(--muted); font-size: .85rem; }
+.topic-list .t-del { display: none; border: none; background: transparent; padding: 0 2px; font-size: .85rem; line-height: 1; opacity: .7; }
+.topic-list a:hover .t-del { display: inline; }
+.topic-list .t-del:hover { opacity: 1; transform: scale(1.15); }
+@media (hover: none) { .topic-list .t-del { display: inline; } }
 
 .sidebar-foot { border-top: 1px solid var(--border); padding: 10px 12px 14px; margin-top: auto; }
 .sync-state { font-size: .75rem; color: var(--muted); padding: 4px 8px 8px; display: flex; gap: 6px; align-items: center; }

@@ -1,10 +1,11 @@
-import { $, $$, esc, toast, isPhrase, EMOJIS, POS_LIST, POS_SHORT } from './utils.js';
-import { openModal, closeModal, confirmModal } from './modal.js';
-import { Store } from './store.js';
-import { TTS } from './tts.js';
-import { lookupWord } from './dictionary.js';
-import { render, go } from './router.js';
-import { LIBRARY, packToWords } from './library.js';
+import { $, $$, esc, toast, isPhrase, EMOJIS, POS_LIST, POS_SHORT } from './utils.js?v=9';
+import { openModal, closeModal, confirmModal } from './modal.js?v=9';
+import { Store } from './store.js?v=9';
+import { TTS } from './tts.js?v=9';
+import { lookupWord } from './dictionary.js?v=9';
+import { render, go } from './router.js?v=9';
+import { LIBRARY, packToWords } from './library.js?v=9';
+import { Community } from './community.js?v=9';
 
 /* ---------- Form chủ đề ---------- */
 export function topicForm(topic) {
@@ -174,13 +175,31 @@ export function shareTopicForm(topic) {
   const text = words.map(w => [w.word, w.phonetic, w.meaning, w.example, w.exampleVi].map(x => (x || '').replace(/\|/g, '/')).join(' | ').replace(/( \| )+$/, '')).join('\n');
   openModal(`
     <h2>📤 Chia sẻ chủ đề "${esc(topic.name)}"</h2>
-    <p class="muted small">Sao chép nội dung dưới đây gửi cho bạn bè – họ chỉ cần tạo chủ đề rồi dán vào <b>Nhập nhanh</b> là có đủ ${words.length} từ.</p>
-    <div class="field"><textarea id="shText" style="min-height:220px;font-family:monospace;font-size:.85rem" readonly>${esc(text)}</textarea></div>
+    <div class="card pub-box ${topic.publicId ? 'on' : ''}">
+      <div class="row between">
+        <div><b>🌍 Chợ chủ đề (công khai)</b><div class="small muted" id="pubState">${topic.publicId ? `Đang công khai · đăng ${new Date(topic.publishedAt || Date.now()).toLocaleDateString('vi-VN')} · mọi người có thể tìm và clone` : Community.available ? 'Đăng bộ từ này lên Chợ chủ đề để mọi người duyệt, tìm kiếm và clone về tài khoản của họ.' : 'Cần đăng nhập tài khoản (chế độ cloud) để đăng lên chợ.'}</div></div>
+        <div class="row nowrap">
+          ${Community.available ? `<button class="btn btn-sm ${topic.publicId ? '' : 'btn-primary'}" id="pubBtn" ${words.length ? '' : 'disabled'}>${topic.publicId ? '🔄 Cập nhật' : '🌍 Đăng lên chợ'}</button>${topic.publicId ? `<button class="btn btn-sm btn-danger" id="unpubBtn">Gỡ</button>` : ''}` : ''}
+        </div>
+      </div>
+    </div>
+    <p class="muted small mt">Hoặc sao chép nội dung dưới đây gửi cho bạn bè – họ chỉ cần tạo chủ đề rồi dán vào <b>Nhập nhanh</b> là có đủ ${words.length} từ.</p>
+    <div class="field"><textarea id="shText" style="min-height:180px;font-family:monospace;font-size:.85rem" readonly>${esc(text)}</textarea></div>
     <div class="modal-actions">
       <button class="btn" data-close>Đóng</button>
       <button class="btn" id="shDownload">⬇️ Tải file .txt</button>
       <button class="btn btn-primary" id="shCopy">📋 Sao chép</button>
     </div>`, root => {
+    $('#pubBtn', root)?.addEventListener('click', async e => {
+      const b = e.currentTarget; b.disabled = true; b.textContent = '⏳'; const wasPublic = !!topic.publicId;
+      try { await Community.publish(topic); toast(wasPublic ? 'Đã cập nhật bộ từ trên chợ' : 'Đã đăng lên Chợ chủ đề 🌍'); closeModal(); render(); }
+      catch (err) { toast('Lỗi: ' + err.message, 5000); b.disabled = false; b.textContent = '🌍 Đăng lên chợ'; }
+    });
+    $('#unpubBtn', root)?.addEventListener('click', async e => {
+      const b = e.currentTarget; b.disabled = true;
+      try { await Community.unpublish(topic); toast('Đã gỡ khỏi Chợ chủ đề'); closeModal(); render(); }
+      catch (err) { toast('Lỗi: ' + err.message, 5000); b.disabled = false; }
+    });
     $('#shCopy', root).addEventListener('click', async () => {
       try { await navigator.clipboard.writeText(text); toast('Đã sao chép ' + words.length + ' từ'); }
       catch { $('#shText', root).select(); document.execCommand('copy'); toast('Đã sao chép'); }

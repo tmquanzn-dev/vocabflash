@@ -1,6 +1,6 @@
-import { uid, INTERVALS, MAX_LEVEL, DAY, todayKey, weekKey, debounce, toast, isPhrase } from './utils.js';
-import { Auth } from './auth.js';
-import { CONFIG } from './config.js';
+import { uid, INTERVALS, MAX_LEVEL, DAY, todayKey, weekKey, debounce, toast, isPhrase } from './utils.js?v=9';
+import { Auth } from './auth.js?v=9';
+import { CONFIG } from './config.js?v=9';
 
 /**
  * Kho dữ liệu của người dùng đang đăng nhập.
@@ -61,6 +61,7 @@ function normalize(d) {
   d.words = Array.isArray(d.words) ? d.words : [];
   d.settings = { ...DEFAULT_SETTINGS, ...(d.settings || {}) };
   d.activity = d.activity && typeof d.activity === 'object' ? d.activity : {};
+  d.grammar = d.grammar && typeof d.grammar === 'object' ? d.grammar : {}; // tiến độ luyện ngữ pháp: { [thì]: { [mức]: {...} } }
   d.updatedAt = d.updatedAt || 0;
   return d;
 }
@@ -149,7 +150,7 @@ export const Store = {
       const guest = tryKey('vocabflash.v2.guest', false);
       if (guest && guest.modified) { toast('Đã chuyển dữ liệu khách sang tài khoản của bạn'); return guest; }
     }
-    return tryKey(LEGACY_KEY, true) || seedData();
+    return normalize(tryKey(LEGACY_KEY, true) || seedData());
   },
 
   close() {
@@ -207,7 +208,8 @@ export const Store = {
   topic(id) { return this.data.topics.find(t => t.id === id); },
   addTopic(t) { const topic = { id: uid(), name: t.name.trim(), icon: t.icon || '📚', desc: (t.desc || '').trim(), createdAt: Date.now() }; this.data.topics.push(topic); this.save(); return topic; },
   updateTopic(id, patch) { Object.assign(this.topic(id), patch); this.save(); },
-  deleteTopic(id) { this.data.topics = this.data.topics.filter(t => t.id !== id); this.data.words = this.data.words.filter(w => w.topicId !== id); this.save(); },
+  deleteTopic(id) { this.deleteTopics([id]); },
+  deleteTopics(ids) { const s = new Set(ids); this.data.topics = this.data.topics.filter(t => !s.has(t.id)); this.data.words = this.data.words.filter(w => !s.has(w.topicId)); this.save(); },
   topicProgress(topicId) { const ws = this.wordsOf(topicId); return ws.length ? Math.round(ws.filter(w => w.level >= 3).length / ws.length * 100) : 0; },
 
   /* ---------- từ vựng ---------- */
@@ -216,7 +218,9 @@ export const Store = {
   wordsOf(topicId) { return this.data.words.filter(w => w.topicId === topicId); },
   addWord(topicId, w) { const word = makeWord(topicId, w); this.data.words.push(word); this.save(); return word; },
   updateWord(id, patch) { Object.assign(this.word(id), patch); this.save(); },
-  deleteWord(id) { this.data.words = this.data.words.filter(w => w.id !== id); this.save(); },
+  deleteWord(id) { this.deleteWords([id]); },
+  deleteWords(ids) { const s = new Set(ids); this.data.words = this.data.words.filter(w => !s.has(w.id)); this.save(); },
+  clearTopic(topicId) { this.data.words = this.data.words.filter(w => w.topicId !== topicId); this.save(); },
   toggleStar(id) { const w = this.word(id); w.star = !w.star; this.save(); return w.star; },
   starredWords() { return this.data.words.filter(w => w.star); },
   // Lọc theo loại: 'words' (từ đơn) | 'phrases' (cụm từ) | khác → tất cả
@@ -235,6 +239,22 @@ export const Store = {
     const k = todayKey();
     const a = this.data.activity[k] || (this.data.activity[k] = { reviews: 0, correct: 0 });
     a.reviews++; if (remembered) a.correct++;
+    this.save();
+    this._pushLeaderboardDebounced();
+  },
+
+  /* ---------- ngữ pháp ---------- */
+  grammarStat(tense, level) { return this.data.grammar?.[tense]?.[level] || { attempts: 0, best: 0, last: 0, correct: 0, total: 0 }; },
+  // Ghi kết quả một lượt luyện ngữ pháp; mỗi câu trả lời cũng tính là 1 lượt ôn trong ngày
+  recordGrammar(tense, level, correct, total) {
+    const gr = this.data.grammar || (this.data.grammar = {});
+    const g = gr[tense] || (gr[tense] = {});
+    const st = g[level] || (g[level] = { attempts: 0, best: 0, last: 0, correct: 0, total: 0 });
+    const pct = total ? Math.round(correct / total * 100) : 0;
+    st.attempts++; st.last = pct; st.best = Math.max(st.best, pct); st.correct += correct; st.total += total; st.at = Date.now();
+    const k = todayKey();
+    const a = this.data.activity[k] || (this.data.activity[k] = { reviews: 0, correct: 0 });
+    a.reviews += total; a.correct += correct;
     this.save();
     this._pushLeaderboardDebounced();
   },

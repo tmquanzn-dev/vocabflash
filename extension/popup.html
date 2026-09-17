@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>VocabFlash</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <header class="brand"><img src="icon48.png" width="28" height="28" alt=""><div><b>VocabFlash</b><small>Thêm từ vựng từ trang web</small></div></header>
+
+  <!-- Chưa đăng nhập -->
+  <section id="login" hidden>
+    <p class="muted">Đăng nhập bằng tài khoản email của VocabFlash. (Tài khoản Google: vào web → Cài đặt → đặt mật khẩu, hoặc dùng "Quên mật khẩu".)</p>
+    <input id="email" type="email" placeholder="Email" autocomplete="username">
+    <input id="password" type="password" placeholder="Mật khẩu" autocomplete="current-password">
+    <button id="btnLogin" class="primary">Đăng nhập</button>
+    <div id="loginMsg" class="msg"></div>
+    <a id="openApp1" href="#" class="link">Mở VocabFlash ↗</a>
+  </section>
+
+  <!-- Đã đăng nhập -->
+  <section id="main" hidden>
+    <div class="user"><span id="userName"></span><button id="btnLogout" class="ghost" title="Đăng xuất">⏻</button></div>
+    <div class="how">Bôi đen từ trên trang web → <b>chuột phải</b> → <b>Thêm "…" vào VocabFlash</b></div>
+    <label>Hoặc thêm nhanh</label>
+    <div class="row"><input id="quickWord" placeholder="từ / cụm từ tiếng Anh"><button id="btnQuick" class="primary">＋</button></div>
+    <div id="mainMsg" class="msg"></div>
+    <div class="foot"><span id="pending" class="muted"></span><a id="openApp2" href="#" class="link">Mở Hộp thư từ ↗</a></div>
+  </section>
+
+  <script type="module" src="popup.js"></script>
+</body>
+</html>

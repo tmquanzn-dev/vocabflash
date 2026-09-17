@@ -30,7 +30,7 @@ Nên dùng Chrome / Edge để có giọng đọc tự nhiên nhất.
    SUPABASE_URL: 'https://xxxx.supabase.co',
    SUPABASE_ANON_KEY: 'eyJ...',
    ```
-3. **SQL Editor** → dán & chạy nội dung file `supabase/schema.sql` (tạo bảng `user_data`, `leaderboard` + Row Level Security + Realtime). Chạy lại file này mỗi khi cập nhật web – an toàn, không mất dữ liệu.
+3. **SQL Editor** → dán & chạy nội dung file `supabase/schema.sql` (tạo bảng `user_data`, `leaderboard`, `public_topics` (Chợ chủ đề), `inbox_words` (extension) + hàm `increment_clones` + Row Level Security + Realtime). Chạy lại file này mỗi khi cập nhật web – an toàn, không mất dữ liệu.
 4. **Authentication → URL Configuration**:
    - *Site URL*: địa chỉ bạn đang chạy web, vd `http://localhost:8080` (Live Server của VS Code là `http://127.0.0.1:5500`)
    - *Redirect URLs*: thêm `http://localhost:8080/**`, `http://127.0.0.1:5500/**` và domain thật khi deploy (`https://ten-mien.com/**`). Link trong email và Google chỉ quay về được các địa chỉ trong danh sách này.
@@ -91,7 +91,7 @@ Không làm bước này thì Google login và link trong email sẽ quay về `
 - Gói Free Supabase: 50.000 người dùng/tháng, 500 MB database, 200 kết nối realtime đồng thời. Mỗi người dùng chiếm ~vài chục KB, nên thoải mái cho hàng nghìn người.
 - Email: dùng SMTP riêng (Gmail ~500 email/ngày; Resend 3.000/tháng free; cần nhiều hơn thì Brevo/SES).
 - Hosting tĩnh (Netlify/Vercel/Cloudflare) có CDN toàn cầu, băng thông free 100 GB/tháng – thừa cho web này.
-- Khi sửa code, tăng số `?v=` ở thẻ `<script>` trong `index.html` để người dùng nhận bản mới.
+- Khi sửa code, tăng số phiên bản để người dùng nhận bản mới: tìm & thay toàn bộ `?v=9` → `?v=10` trong `index.html` và thư mục `js/` (mọi import nội bộ đều có `?v=`, nếu chỉ đổi ở `index.html` thì các file con vẫn bị trình duyệt cache).
 
 ## Cấu trúc mã nguồn
 
@@ -112,13 +112,22 @@ js/
   store.js            dữ liệu theo tài khoản, SRS, thống kê, đồng bộ cloud
   tts.js              phát âm (Web Speech API + audio từ điển)
   dictionary.js       tra phiên âm/định nghĩa (dictionaryapi.dev + Datamuse, ARPABET→IPA)
-  modal.js  forms.js  hộp thoại; form chủ đề / từ / nhập nhanh / chia sẻ / thư viện
+  modal.js  forms.js  hộp thoại; form chủ đề / từ / nhập nhanh / chia sẻ (+ đăng lên chợ) / thư viện
   library.js          8 bộ chủ đề mẫu
+  community.js        Chợ chủ đề: đăng / gỡ / tìm / clone bộ từ (bảng public_topics)
+  ai.js               AI trích xuất từ vựng / điền nghĩa (Gemini API) + đọc link qua r.jina.ai
+  inbox.js            Hộp thư từ: tải + realtime bảng inbox_words (từ do extension gửi)
+  grammar/
+    tenses.js         lý thuyết 13 thì: công thức, cách dùng, dấu hiệu, ví dụ, lưu ý
+    bank.js           ~240 câu bài tập soạn tay, 3 mức, kèm giải thích
+    gen.js            bộ sinh câu hỏi tự động (chia động từ đúng cho 13 thì, đáp án nhiễu từ thì lân cận)
   speech.js           luyện nói (Web Speech Recognition)
   shell.js            sidebar, tiêu đề, theme, trạng thái đồng bộ, thẻ người dùng
   utils.js            tiện ích + hằng số
   views/              mỗi màn hình một file: landing, auth, home, topic, flashcards,
-                      review, quiz, match (nối từ), audio (audition), leaderboard, search, settings, profile
+                      review, quiz, match (nối từ), audio (audition), leaderboard, search, settings, profile,
+                      grammar (13 thì), explore (chợ chủ đề), ai (AI trích xuất), spell (gõ chính tả), inbox (hộp thư từ)
+extension/            extension Chrome (Manifest V3): manifest, background (menu chuột phải), popup (đăng nhập, thêm nhanh), api (REST Supabase)
 netlify.toml / vercel.json   cấu hình header khi deploy (tuỳ chọn)
 supabase/schema.sql   bảng + policy RLS
 ```
@@ -138,3 +147,33 @@ supabase/schema.sql   bảng + policy RLS
 - **⏰ Ôn tập theo lịch** (Leitner 7 mức: 1 → 3 → 7 → 14 → 30 → 60 ngày)
 - **🔥 Mục tiêu ngày, streak, biểu đồ 7 ngày**, từ hay sai nhất
 - **Tìm kiếm** theo từ tiếng Anh và/hoặc nghĩa tiếng Việt (`Ctrl+K`), báo "chưa có từ" và cho thêm ngay; **dark mode**, **xuất / nhập JSON**, responsive mobile
+- **Xoá nhiều**: trong chủ đề bấm **☑️ Chọn** để tick nhiều từ (hoặc chọn tất cả) rồi xoá, hoặc **🗑️ Xoá tất cả** từ; trang chủ bấm **☑️ Quản lý** để chọn / xoá nhiều chủ đề hoặc xoá tất cả chủ đề
+- **🎧 Audition – chế độ chỉ nghe**: tick "🙈 Chỉ nghe" để ẩn từ / phiên âm / nghĩa, chỉ còn âm thanh; bấm 👁 để xem tạm từ hiện tại
+
+### 📐 Ngữ pháp – 13 thì cơ bản (`#/grammar`)
+- Hiện tại đơn / tiếp diễn / hoàn thành / hoàn thành tiếp diễn · Quá khứ (4 thì) · Tương lai (4 thì) · Tương lai gần (be going to)
+- Mỗi thì: **công thức** (khẳng định / phủ định / nghi vấn), **cách dùng** kèm ví dụ, **dấu hiệu nhận biết**, ví dụ thêm có 🔊, **lưu ý & lỗi thường gặp**
+- **Bài tập 3 mức**: 🌱 Cơ bản · 🔥 Khó · 💀 Siêu khó; dạng trắc nghiệm / tự gõ / trộn; 10–50 câu mỗi lượt
+- Ngân hàng câu = **~240 câu soạn tay** (câu phức, phân biệt thì, "chọn câu đúng", có giải thích) + **bộ sinh tự động** (chủ ngữ × ~60 động từ × dấu hiệu → hàng nghìn tổ hợp, đáp án nhiễu là cùng động từ ở các thì lân cận / chia sai ngôi) → mỗi lượt làm được xáo trộn và sinh mới, không lần nào giống lần nào
+- **🎲 Luyện tổng hợp** trộn cả 13 thì, kết quả thống kê theo từng thì; tiến độ (tốt nhất / lần cuối / số lượt) lưu theo tài khoản và đồng bộ cloud; mỗi câu trả lời tính là 1 lượt ôn cho mục tiêu ngày & bảng xếp hạng
+
+### 🌍 Chợ chủ đề (`#/explore`)
+- Trong chủ đề → **📤 Chia sẻ** → **🌍 Đăng lên chợ**: bộ từ (không kèm tiến độ cá nhân) được lưu vào bảng `public_topics`; bấm lại để cập nhật, hoặc **Gỡ**
+- Trang **Khám phá**: tìm theo tên / mô tả / người đăng, sắp xếp theo lượt clone hoặc mới nhất, **👁 Xem** trước danh sách từ, **⬇️ Clone** về tài khoản (1 bấm) – số lượt clone tăng qua hàm SQL `increment_clones`
+- Cần tài khoản (chế độ cloud); khách chỉ xem được thông báo
+
+### ⌨️ Gõ chính tả (`#/spell/<id>`)
+- 3 kiểu đề: **🔊 chỉ nghe** (phát âm → gõ lại từ), **🇻🇳 chỉ nghĩa** (nghĩa tiếng Việt → gõ từ tiếng Anh), **cả hai**
+- Gõ sai → hiện đáp án + phiên âm + nghĩa + ví dụ và tự hỏi lại từ đó ở cuối; tuỳ chọn phân biệt hoa/thường; gợi ý chữ cái đầu; `Ctrl+Space` nghe lại
+- Mỗi lần gõ tính vào Leitner như flashcard/quiz; có trong từng chủ đề (nút ⌨️) và trang chủ ("Gõ chính tả" cho tất cả từ)
+
+### 🧩 Extension Chrome (`extension/`)
+- Bôi đen từ trên trang web → chuột phải → **Thêm "…" vào VocabFlash**; extension lấy luôn câu chứa từ + link bài, gửi vào bảng `inbox_words` của tài khoản (REST Supabase, không cần thư viện). Popup có ô thêm nhanh và số từ đang chờ.
+- Trên web, mục **📥 Hộp thư từ** (badge ở sidebar, cập nhật realtime) hiện các từ đó: **✨ AI điền nghĩa** theo ngữ cảnh (Gemini), **🔎 Tra từ điển** lấy IPA/audio, chọn chủ đề → thêm. Lý do dùng hộp thư thay vì ghi thẳng vào dữ liệu: dữ liệu học lưu dạng 1 khối JSON, extension ghi đè sẽ đụng với web đang mở.
+- Cài: `chrome://extensions` → Developer mode → **Load unpacked** → chọn thư mục `extension/`. Sửa `extension/config.js` (`APP_URL` = địa chỉ web đã deploy). Đăng nhập bằng email + mật khẩu; tài khoản Google thì vào **Cài đặt → Đặt mật khẩu** trước.
+
+### ✨ AI trích xuất từ vựng (`#/ai`)
+- Dán **đoạn văn** hoặc **link bài báo** tiếng Anh → AI (Gemini) lọc ra từ khó theo mức chọn (B1–B2 / B2–C1 / C1–C2), trả về phiên âm IPA, loại từ, **nghĩa tiếng Việt theo đúng ngữ cảnh bài**, câu ví dụ trích từ bài + bản dịch, định nghĩa EN, mức CEFR
+- Tick chọn từ muốn giữ → **tạo chủ đề mới** (AI gợi ý tên) hoặc **thêm vào chủ đề có sẵn**; tuỳ chọn tra thêm audio người thật từ từ điển
+- Cần **Gemini API key** (miễn phí tại https://aistudio.google.com/apikey). Có 2 nguồn: key mặc định của web (người dùng không phải làm gì) hoặc key riêng người dùng dán vào ô trên trang (lưu `localStorage`, ưu tiên hơn). Lời gọi đi thẳng từ trình duyệt tới Google (web tĩnh không có server trung gian). Link bài báo được đọc qua dịch vụ công khai `r.jina.ai`; trang chặn bot thì dán văn bản trực tiếp
+- **Key mặc định không nằm trong git** (GitHub Push Protection chặn): chạy local → copy `js/secrets.example.js` thành `js/secrets.js` và điền key (file đã trong `.gitignore`). Khi deploy → đặt biến môi trường **`GEMINI_API_KEY`** trong Netlify (*Site configuration → Environment variables*) hoặc Vercel (*Settings → Environment Variables*); `netlify.toml` / `vercel.json` đã có lệnh build sinh `js/secrets.js` từ biến đó. Deploy bằng kéo thả thư mục thì `secrets.js` trên máy được đưa lên cùng, không cần làm gì. Vì key vẫn tới trình duyệt người dùng, nên vào Google Cloud Console giới hạn key theo **HTTP referrer** (domain web)

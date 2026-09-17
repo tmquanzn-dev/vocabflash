@@ -1,9 +1,10 @@
-import { $, esc, toast } from '../utils.js';
-import { Store } from '../store.js';
-import { TTS } from '../tts.js';
-import { setTitle, applyTheme } from '../shell.js';
-import { openModal, closeModal, confirmModal } from '../modal.js';
-import { render } from '../router.js';
+import { $, esc, toast } from '../utils.js?v=9';
+import { Store } from '../store.js?v=9';
+import { Auth } from '../auth.js?v=9';
+import { TTS } from '../tts.js?v=9';
+import { setTitle, applyTheme } from '../shell.js?v=9';
+import { openModal, closeModal, confirmModal } from '../modal.js?v=9';
+import { render } from '../router.js?v=9';
 
 /* Cài đặt: phát âm, giao diện, mục tiêu, dữ liệu */
 export function viewSettings(el) {
@@ -38,6 +39,16 @@ export function viewSettings(el) {
         <p class="hint mt" style="margin-top:8px">${Store.cloud ? 'Chỉ chia sẻ tên hiển thị, ảnh đại diện và số lượt ôn – không chia sẻ từ vựng của bạn.' : 'Cần đăng nhập tài khoản (chế độ cloud) để tham gia bảng xếp hạng.'}</p>
       </div>
       <div class="card">
+        <h3>🧩 Extension Chrome – thêm từ ngay khi đọc báo</h3>
+        <p class="muted small">Bôi đen từ trên trang web → chuột phải → <b>Thêm vào VocabFlash</b> → từ về <a href="#/inbox" style="color:var(--primary)">📥 Hộp thư từ</a>, bạn điền nghĩa (AI điền được) rồi thêm vào chủ đề.</p>
+        <ol class="muted small" style="margin:0 0 10px;padding-left:18px">
+          <li>Tải mã nguồn web, mở Chrome → <code>chrome://extensions</code> → bật <b>Developer mode</b> → <b>Load unpacked</b> → chọn thư mục <code>extension/</code>.</li>
+          <li>Bấm biểu tượng VocabFlash trên thanh công cụ → đăng nhập bằng <b>email + mật khẩu</b> của tài khoản này.</li>
+        </ol>
+        ${Store.cloud ? `<div class="row"><input class="input" type="password" id="sPass" placeholder="${Auth.user.provider === 'email' ? 'Đổi mật khẩu (≥ 6 ký tự)' : 'Đặt mật khẩu để đăng nhập extension (≥ 6 ký tự)'}" style="max-width:320px" autocomplete="new-password"><button class="btn" id="sPassBtn">🔑 ${Auth.user.provider === 'email' ? 'Đổi mật khẩu' : 'Đặt mật khẩu'}</button></div>
+        <p class="hint" style="margin-top:6px">${Auth.user.provider === 'email' ? '' : `Bạn đăng nhập bằng ${Auth.user.provider === 'google' ? 'Google' : Auth.user.provider} – đặt mật khẩu để extension đăng nhập bằng email <b>${esc(Auth.user.email)}</b>.`}</p>` : '<p class="hint">Cần đăng nhập tài khoản (chế độ cloud) để dùng extension.</p>'}
+      </div>
+      <div class="card">
         <h3>💾 Dữ liệu</h3>
         <p class="muted small">${Store.cloud ? 'Dữ liệu được đồng bộ lên đám mây theo tài khoản của bạn.' : 'Dữ liệu được lưu trong trình duyệt này theo tài khoản.'} Xuất file để sao lưu hoặc chuyển sang máy khác.</p>
         <div class="row">
@@ -61,6 +72,12 @@ export function viewSettings(el) {
   $('#sLb', el).addEventListener('change', e => { s.showOnLeaderboard = e.target.checked; save(); if (e.target.checked) Store.pushLeaderboard(); else Store.removeFromLeaderboard(); });
   $('#sGoal', el).addEventListener('change', e => { s.dailyGoal = Math.max(5, parseInt(e.target.value) || 20); save(); });
 
+  $('#sPassBtn', el)?.addEventListener('click', async e => {
+    const b = e.currentTarget; b.disabled = true;
+    try { await Auth.setPassword($('#sPass', el).value); $('#sPass', el).value = ''; toast('Đã lưu mật khẩu – dùng email này để đăng nhập extension'); }
+    catch (err) { toast('Lỗi: ' + err.message, 5000); }
+    finally { b.disabled = false; }
+  });
   $('#sExport', el).addEventListener('click', () => {
     const blob = new Blob([Store.exportJSON()], { type: 'application/json' });
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob);

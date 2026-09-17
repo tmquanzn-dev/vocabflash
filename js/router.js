@@ -1,25 +1,30 @@
-import { $ } from './utils.js';
-import { Auth } from './auth.js';
-import { Store } from './store.js';
-import { TTS } from './tts.js';
-import { setNavActive, renderSidebar, closeSidebar } from './shell.js';
-import { viewLanding } from './views/landing.js';
-import { viewAuth } from './views/auth.js';
-import { viewHome } from './views/home.js';
-import { viewTopic } from './views/topic.js';
-import { viewFlash } from './views/flashcards.js';
-import { viewReview } from './views/review.js';
-import { viewQuiz } from './views/quiz.js';
-import { viewSearch } from './views/search.js';
-import { viewSettings } from './views/settings.js';
-import { viewProfile } from './views/profile.js';
-import { viewMatch } from './views/match.js';
-import { viewLeaderboard } from './views/leaderboard.js';
-import { viewAudio } from './views/audio.js';
+import { $ } from './utils.js?v=9';
+import { Auth } from './auth.js?v=9';
+import { Store } from './store.js?v=9';
+import { TTS } from './tts.js?v=9';
+import { setNavActive, renderSidebar, closeSidebar } from './shell.js?v=9';
+import { viewLanding } from './views/landing.js?v=9';
+import { viewAuth } from './views/auth.js?v=9';
+import { viewHome } from './views/home.js?v=9';
+import { viewTopic } from './views/topic.js?v=9';
+import { viewFlash } from './views/flashcards.js?v=9';
+import { viewReview } from './views/review.js?v=9';
+import { viewQuiz } from './views/quiz.js?v=9';
+import { viewSearch } from './views/search.js?v=9';
+import { viewSettings } from './views/settings.js?v=9';
+import { viewProfile } from './views/profile.js?v=9';
+import { viewMatch } from './views/match.js?v=9';
+import { viewLeaderboard } from './views/leaderboard.js?v=9';
+import { viewAudio } from './views/audio.js?v=9';
+import { viewGrammar } from './views/grammar.js?v=9';
+import { viewExplore } from './views/explore.js?v=9';
+import { viewAI } from './views/ai.js?v=9';
+import { viewSpell } from './views/spell.js?v=9';
+import { viewInbox } from './views/inbox.js?v=9';
 
 /* Điều hướng theo hash: #/topic/<id>, #/quiz/<id>, ... */
 const PUBLIC_ROUTES = { landing: viewLanding, login: viewAuth, register: viewAuth };
-const APP_ROUTES = { home: viewHome, topic: viewTopic, flash: viewFlash, quiz: viewQuiz, match: viewMatch, audio: viewAudio, leaderboard: viewLeaderboard, review: viewReview, search: viewSearch, settings: viewSettings, profile: viewProfile };
+const APP_ROUTES = { home: viewHome, topic: viewTopic, flash: viewFlash, quiz: viewQuiz, match: viewMatch, audio: viewAudio, leaderboard: viewLeaderboard, review: viewReview, search: viewSearch, settings: viewSettings, profile: viewProfile, grammar: viewGrammar, explore: viewExplore, ai: viewAI, spell: viewSpell, inbox: viewInbox };
 
 let cleanup = null;
 /** View đăng ký hàm dọn dẹp (gỡ phím tắt...) khi rời khỏi view */
@@ -52,7 +57,7 @@ export function render() {
 
   showPublic(false);
   setNavActive(view);
-  renderSidebar(['topic', 'flash', 'quiz', 'match', 'audio'].includes(view) ? id : null);
+  renderSidebar(['topic', 'flash', 'quiz', 'match', 'audio', 'spell'].includes(view) ? id : null);
   closeSidebar();
   window.scrollTo(0, 0);
   const fn = APP_ROUTES[view] || viewHome;

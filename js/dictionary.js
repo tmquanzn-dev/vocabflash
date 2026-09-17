@@ -1,4 +1,4 @@
-import { fetchTimeout } from './utils.js';
+import { fetchTimeout } from './utils.js?v=9';
 
 /* Tra từ điển online để lấy phiên âm IPA, loại từ, ví dụ, audio.
    Nguồn 1: dictionaryapi.dev (IPA chuẩn + audio người thật, nhưng hay chậm/lỗi)

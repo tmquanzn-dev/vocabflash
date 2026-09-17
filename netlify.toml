@@ -1,6 +1,8 @@
 # Netlify: web tĩnh, không cần build
 [build]
   publish = "."
+  # Sinh js/secrets.js từ biến môi trường GEMINI_API_KEY (Site settings → Environment variables)
+  command = "printf \"window.VF_SECRETS = { GEMINI_API_KEY: '%s' };\" \"$GEMINI_API_KEY\" > js/secrets.js"
 
 # Cache lâu cho CSS/JS (đổi ?v= trong index.html khi cập nhật), không cache trang chính
 [[headers]]
