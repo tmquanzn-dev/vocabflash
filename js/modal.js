@@ -1,4 +1,4 @@
-import { $, $$, esc } from './utils.js?v=11';
+import { $, $$, esc } from './utils.js?v=12';
 
 export function openModal(html, onOpen) {
   const root = $('#modalRoot');

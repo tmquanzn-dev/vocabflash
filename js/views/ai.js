@@ -1,9 +1,9 @@
-import { $, $$, esc, toast, isPhrase, POS_LIST, EMOJIS } from '../utils.js?v=11';
-import { Store } from '../store.js?v=11';
-import { setTitle, renderSidebar } from '../shell.js?v=11';
-import { go } from '../router.js?v=11';
-import { AI, AI_MODELS, AI_LEVELS, AI_TIMEOUT } from '../ai.js?v=11';
-import { lookupWord } from '../dictionary.js?v=11';
+import { $, $$, esc, toast, isPhrase, POS_LIST, EMOJIS } from '../utils.js?v=12';
+import { Store } from '../store.js?v=12';
+import { setTitle, renderSidebar } from '../shell.js?v=12';
+import { go } from '../router.js?v=12';
+import { AI, AI_MODELS, AI_LEVELS, AI_TIMEOUT } from '../ai.js?v=12';
+import { lookupWord } from '../dictionary.js?v=12';
 
 const keyState = () => AI.ownKey ? '✔ Key riêng' : AI.usingDefault ? '✔ Key mặc định' : AI.usingProxy ? '✔ Dùng AI của VocabFlash' : 'Chưa có key';
 // Giữ kết quả khi quay lại trang trong cùng phiên

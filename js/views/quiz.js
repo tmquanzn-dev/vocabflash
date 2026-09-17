@@ -1,10 +1,10 @@
-import { $, $$, esc, shuffle, sample, toast, isTyping, isPhrase, normalizeAnswer, hintFor, lengthClass } from '../utils.js?v=11';
-import { Store, clozeRegex } from '../store.js?v=11';
-import { resolveWordSet } from './flashcards.js?v=11';
-import { TTS } from '../tts.js?v=11';
-import { setTitle, renderSidebar } from '../shell.js?v=11';
-import { isModalOpen } from '../modal.js?v=11';
-import { onLeave, go } from '../router.js?v=11';
+import { $, $$, esc, shuffle, sample, toast, isTyping, isPhrase, normalizeAnswer, hintFor, lengthClass } from '../utils.js?v=12';
+import { Store, clozeRegex } from '../store.js?v=12';
+import { resolveWordSet } from './flashcards.js?v=12';
+import { TTS } from '../tts.js?v=12';
+import { setTitle, renderSidebar } from '../shell.js?v=12';
+import { isModalOpen } from '../modal.js?v=12';
+import { onLeave, go } from '../router.js?v=12';
 
 const QUIZ_MODES = [
   { id: 'mc-en-vi', ic: '🇬🇧→🇻🇳', t: 'Chọn nghĩa', d: 'Nhìn từ tiếng Anh, chọn nghĩa đúng' },

@@ -1,10 +1,10 @@
-import { $, esc, toast } from '../utils.js?v=11';
-import { Store } from '../store.js?v=11';
-import { Auth } from '../auth.js?v=11';
-import { TTS } from '../tts.js?v=11';
-import { setTitle, applyTheme } from '../shell.js?v=11';
-import { openModal, closeModal, confirmModal } from '../modal.js?v=11';
-import { render } from '../router.js?v=11';
+import { $, esc, toast } from '../utils.js?v=12';
+import { Store } from '../store.js?v=12';
+import { Auth } from '../auth.js?v=12';
+import { TTS } from '../tts.js?v=12';
+import { setTitle, applyTheme } from '../shell.js?v=12';
+import { openModal, closeModal, confirmModal } from '../modal.js?v=12';
+import { render } from '../router.js?v=12';
 
 /* Mã bookmarklet: lấy chữ đang bôi đen + câu chứa nó, mở VocabFlash ở #/add?... */
 function bookmarklet() {
@@ -47,7 +47,7 @@ export function viewSettings(el) {
       </div>
       <div class="card">
         <h3>➕ Thêm từ ngay khi đang đọc báo</h3>
-        <p class="muted small"><b>Cách 1 – Bookmarklet (không cần cài gì, mọi trình duyệt):</b> kéo nút dưới đây lên <b>thanh dấu trang</b> (Ctrl+Shift+B để hiện thanh). Khi đọc trang tiếng Anh, bôi đen từ rồi bấm nút đó → VocabFlash mở ra với từ + câu chứa từ đã điền sẵn.</p>
+        <p class="muted small"><b>Cách 1 – Bookmarklet (không cần cài gì, mọi trình duyệt):</b> kéo nút dưới đây lên <b>thanh dấu trang</b> (Ctrl+Shift+B để hiện thanh). Khi đọc trang tiếng Anh, bôi đen <b>1 từ</b> rồi bấm nút đó → VocabFlash mở ra với từ + câu chứa từ, AI điền nghĩa; bôi đen <b>cả đoạn</b> → AI dịch nguyên đoạn và liệt kê từ khó để thêm. Không cần cài gì, chạy mọi trình duyệt.</p>
         <div class="row mb"><a class="btn btn-primary bookmarklet" id="sBm" href="${esc(bookmarklet())}" title="Kéo tôi lên thanh dấu trang" draggable="true">➕ VocabFlash</a><span class="hint">Kéo không được? Dùng cách thủ công bên dưới.</span></div>
         <details class="bm-manual mb"><summary>Tạo thủ công (20 giây, không cần kéo)</summary>
           <ol class="muted small" style="margin:8px 0 0;padding-left:18px">

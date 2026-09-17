@@ -22,5 +22,7 @@ textarea:focus { border-color: #5b5ff7; background: #fff; }
 .tr { margin-top: 8px; padding: 8px 10px; background: #eceeff; border-radius: 8px; font-size: 13px; white-space: pre-wrap; max-height: 220px; overflow: auto; }
 .tr .w { display: flex; gap: 6px; align-items: center; margin-top: 6px; padding-top: 6px; border-top: 1px solid #d8dbff; font-size: 12.5px; }
 .tr .w span { flex: 1; color: #3c40b8; } .tr .w button { padding: 1px 8px; font-weight: 700; color: #5b5ff7; }
+.diag { margin-top: 6px; font-size: 12px; display: flex; flex-direction: column; gap: 3px; }
+.diag .ok { color: #22a06b; } .diag .warn { color: #e69b00; } .diag .bad { color: #e5484d; }
 .foot { display: flex; justify-content: space-between; align-items: center; margin-top: 6px; }
 .foot .link { margin: 0; }

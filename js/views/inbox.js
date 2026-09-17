@@ -1,12 +1,12 @@
-import { $, $$, esc, toast, isPhrase, POS_LIST } from '../utils.js?v=11';
-import { Store } from '../store.js?v=11';
-import { Auth } from '../auth.js?v=11';
-import { setTitle, renderSidebar } from '../shell.js?v=11';
-import { confirmModal } from '../modal.js?v=11';
-import { Inbox } from '../inbox.js?v=11';
-import { AI } from '../ai.js?v=11';
-import { lookupWord } from '../dictionary.js?v=11';
-import { go } from '../router.js?v=11';
+import { $, $$, esc, toast, isPhrase, POS_LIST } from '../utils.js?v=12';
+import { Store } from '../store.js?v=12';
+import { Auth } from '../auth.js?v=12';
+import { setTitle, renderSidebar } from '../shell.js?v=12';
+import { confirmModal } from '../modal.js?v=12';
+import { Inbox } from '../inbox.js?v=12';
+import { AI } from '../ai.js?v=12';
+import { lookupWord } from '../dictionary.js?v=12';
+import { go } from '../router.js?v=12';
 
 const INBOX_TOPIC = '📥 Từ extension';
 // Bản nháp nghĩa/phiên âm đã điền cho từng dòng inbox (giữ khi vẽ lại)

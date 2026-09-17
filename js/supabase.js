@@ -1,4 +1,4 @@
-import { CONFIG, isCloudEnabled } from './config.js?v=11';
+import { CONFIG, isCloudEnabled } from './config.js?v=12';
 
 /* Tải supabase-js từ CDN chỉ khi đã cấu hình – web vẫn chạy offline khi chưa cấu hình */
 let clientPromise = null;

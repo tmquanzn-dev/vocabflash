@@ -1,6 +1,6 @@
-import { uid, INTERVALS, MAX_LEVEL, DAY, todayKey, weekKey, debounce, toast, isPhrase } from './utils.js?v=11';
-import { Auth } from './auth.js?v=11';
-import { CONFIG } from './config.js?v=11';
+import { uid, INTERVALS, MAX_LEVEL, DAY, todayKey, weekKey, debounce, toast, isPhrase } from './utils.js?v=12';
+import { Auth } from './auth.js?v=12';
+import { CONFIG } from './config.js?v=12';
 
 /**
  * Kho dữ liệu của người dùng đang đăng nhập.

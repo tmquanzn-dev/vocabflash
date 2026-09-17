@@ -1,7 +1,7 @@
-import { $, $$, esc, todayKey, weekKey } from '../utils.js?v=11';
-import { Store } from '../store.js?v=11';
-import { Auth } from '../auth.js?v=11';
-import { setTitle, avatarHTML } from '../shell.js?v=11';
+import { $, $$, esc, todayKey, weekKey } from '../utils.js?v=12';
+import { Store } from '../store.js?v=12';
+import { Auth } from '../auth.js?v=12';
+import { setTitle, avatarHTML } from '../shell.js?v=12';
 
 const TABS = [
   { id: 'day', label: '📅 Hôm nay', col: 'day_reviews', keyCol: 'day_key', unit: 'lượt ôn hôm nay' },

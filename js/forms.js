@@ -1,11 +1,11 @@
-import { $, $$, esc, toast, isPhrase, EMOJIS, POS_LIST, POS_SHORT } from './utils.js?v=11';
-import { openModal, closeModal, confirmModal } from './modal.js?v=11';
-import { Store } from './store.js?v=11';
-import { TTS } from './tts.js?v=11';
-import { lookupWord } from './dictionary.js?v=11';
-import { render, go } from './router.js?v=11';
-import { LIBRARY, packToWords } from './library.js?v=11';
-import { Community } from './community.js?v=11';
+import { $, $$, esc, toast, isPhrase, EMOJIS, POS_LIST, POS_SHORT } from './utils.js?v=12';
+import { openModal, closeModal, confirmModal } from './modal.js?v=12';
+import { Store } from './store.js?v=12';
+import { TTS } from './tts.js?v=12';
+import { lookupWord } from './dictionary.js?v=12';
+import { render, go } from './router.js?v=12';
+import { LIBRARY, packToWords } from './library.js?v=12';
+import { Community } from './community.js?v=12';
 
 /* ---------- Form chủ đề ---------- */
 export function topicForm(topic) {

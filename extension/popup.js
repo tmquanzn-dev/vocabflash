@@ -1,5 +1,5 @@
 import { CONFIG } from './config.js';
-import { getSession, login, logout, addWord, defineWords, updateWord, pendingCount, translatePassage } from './api.js';
+import { getSession, login, logout, addWord, defineWords, updateWord, pendingCount, translatePassage, diagnose } from './api.js';
 
 const $ = s => document.querySelector(s);
 const msg = (el, text, ok) => { el.textContent = text; el.className = 'msg ' + (text ? (ok ? 'ok' : 'err') : ''); };
@@ -61,6 +61,11 @@ $('#btnTranslate').addEventListener('click', async () => {
   finally { b.disabled = false; b.textContent = '🌐 Dịch'; }
 });
 $('#quickWord').addEventListener('keydown', e => { if (e.key === 'Enter') quick(); });
+$('#btnDiag').addEventListener('click', async () => {
+  const box = $('#diag'); box.hidden = false; box.textContent = '⏳ Đang kiểm tra...';
+  const rows = await diagnose();
+  box.innerHTML = rows.map(([k, t]) => `<div class="${k}">${k === 'ok' ? '✔' : k === 'warn' ? '⚠' : '✖'} ${esc(t)}</div>`).join('');
+});
 $('#openApp1').addEventListener('click', e => { e.preventDefault(); openApp('#/'); });
 $('#openApp2').addEventListener('click', e => { e.preventDefault(); openApp('#/inbox'); });
 

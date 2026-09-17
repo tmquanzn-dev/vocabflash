@@ -1,8 +1,8 @@
-import { $, esc, toast } from '../utils.js?v=11';
-import { Store } from '../store.js?v=11';
-import { Auth } from '../auth.js?v=11';
-import { setTitle, avatarHTML, renderUserCard } from '../shell.js?v=11';
-import { confirmModal } from '../modal.js?v=11';
+import { $, esc, toast } from '../utils.js?v=12';
+import { Store } from '../store.js?v=12';
+import { Auth } from '../auth.js?v=12';
+import { setTitle, avatarHTML, renderUserCard } from '../shell.js?v=12';
+import { confirmModal } from '../modal.js?v=12';
 
 const PROVIDER_LABEL = { google: 'Google', apple: 'Apple', email: 'Email', guest: 'Khách' };
 

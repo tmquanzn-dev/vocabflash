@@ -1,6 +1,6 @@
-import { fetchTimeout } from './utils.js?v=11';
-import { CONFIG, isCloudEnabled } from './config.js?v=11';
-import { Auth } from './auth.js?v=11';
+import { fetchTimeout } from './utils.js?v=12';
+import { CONFIG, isCloudEnabled } from './config.js?v=12';
+import { Auth } from './auth.js?v=12';
 
 /**
  * AI trích xuất từ vựng: dùng Gemini API (Google AI Studio) với API key của chính người dùng, lưu trên máy này.
@@ -157,5 +157,27 @@ ${JSON.stringify(items.map(i => ({ word: i.word, context: (i.context || '').slic
       word: String(w.word || it.word).trim(), phonetic: String(w.phonetic || '').trim(), pos: String(w.pos || '').toLowerCase().trim(),
       meaning: String(w.meaning || '').trim(), exampleVi: String(w.exampleVi || '').trim(), note: String(w.note || '').trim(),
     }; });
+  },
+
+  /**
+   * Dịch cả đoạn văn sang tiếng Việt + chọn tối đa 6 từ khó trong đoạn (dùng cho bookmarklet / trang ➕).
+   * → { translation, words: [{ word, phonetic, pos, meaning, note }] }
+   */
+  async translatePassage(text) {
+    if (!this.available) throw new Error('Chưa có Gemini API key.');
+    text = String(text || '').trim().slice(0, 8000);
+    if (text.length < 20) throw new Error('Đoạn văn quá ngắn.');
+    const prompt = `You are a translator for a Vietnamese learner of English.
+1) Translate the TEXT below into natural, fluent Vietnamese (keep paragraph breaks; do not add comments).
+2) Pick up to 6 useful difficult vocabulary items (CEFR B2 or above; single words, phrasal verbs or collocations; skip names and easy words) that appear in the TEXT.
+Return ONLY JSON: {"translation": "...", "words": [{"word": "dictionary form (keep phrases whole)", "phonetic": "IPA", "pos": "noun|verb|adjective|adverb|phrase|...", "meaning": "concise Vietnamese meaning as used in the text", "note": "short English definition"}]}
+TEXT:
+"""
+${text}
+"""`;
+    let out;
+    try { out = await this._ask(prompt, this.model); }
+    catch (e) { if (e.code === 404 && this.model !== this.defaultModel) { this.model = ''; out = await this._ask(prompt, this.defaultModel); } else throw e; }
+    return { translation: String(out.translation || '').trim(), words: (out.words || []).filter(w => w && w.word && w.meaning).map(w => ({ word: String(w.word).trim(), phonetic: String(w.phonetic || '').trim(), pos: String(w.pos || '').toLowerCase().trim(), meaning: String(w.meaning).trim(), note: String(w.note || '').trim() })) };
   },
 };

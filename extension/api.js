@@ -90,13 +90,39 @@ INPUT: ${JSON.stringify(items.map(i => ({ word: i.word, context: (i.context || '
 }
 export const defineWord = async (word, context = '') => (await defineWords([{ word, context }]))[0];
 
-/** Cập nhật nghĩa cho dòng inbox đã thêm (sau khi dịch xong) */
+/** Cập nhật nghĩa cho dòng inbox đã thêm (sau khi dịch xong). Schema cũ (chưa có cột) → bỏ qua, không ném lỗi. */
 export async function updateWord(id, def) {
-  const s = await getToken();
-  await fetch(`${CONFIG.SUPABASE_URL}/rest/v1/inbox_words?id=eq.${id}&user_id=eq.${s.user.id}`, {
-    method: 'PATCH', headers: { ...H, Authorization: 'Bearer ' + s.access_token, Prefer: 'return=minimal' },
-    body: JSON.stringify({ word: def.word || undefined, meaning: def.meaning, phonetic: def.phonetic, pos: def.pos, example_vi: def.exampleVi, note: def.note }),
-  });
+  try {
+    const s = await getToken();
+    const r = await fetch(`${CONFIG.SUPABASE_URL}/rest/v1/inbox_words?id=eq.${id}&user_id=eq.${s.user.id}`, {
+      method: 'PATCH', headers: { ...H, Authorization: 'Bearer ' + s.access_token, Prefer: 'return=minimal' },
+      body: JSON.stringify({ word: def.word || undefined, meaning: def.meaning, phonetic: def.phonetic, pos: def.pos, example_vi: def.exampleVi, note: def.note }),
+    });
+    return r.ok;
+  } catch { return false; }
+}
+
+/** Kiểm tra từng bước để báo lỗi rõ ràng trong popup */
+export async function diagnose() {
+  const out = [];
+  let s;
+  try { s = await getToken(); out.push(['ok', `Đăng nhập: ${s.user.email}`]); } catch (e) { out.push(['bad', 'Chưa đăng nhập: ' + e.message]); return out; }
+  // Bảng inbox_words + cột mới
+  try {
+    const r = await fetch(`${CONFIG.SUPABASE_URL}/rest/v1/inbox_words?select=id,meaning&limit=1`, { headers: { ...H, Authorization: 'Bearer ' + s.access_token } });
+    if (r.ok) out.push(['ok', 'Bảng inbox_words: OK (schema mới)']);
+    else { const d = await r.json().catch(() => ({})); out.push([/meaning/.test(d.message || '') ? 'warn' : 'bad', /meaning/.test(d.message || '') ? 'Bảng inbox_words thiếu cột nghĩa → chạy lại supabase/schema.sql (vẫn thêm từ được, không lưu nghĩa)' : 'Bảng inbox_words lỗi: ' + (d.message || r.status) + ' → chạy supabase/schema.sql']); }
+  } catch (e) { out.push(['bad', 'Không kết nối được Supabase: ' + e.message]); }
+  // Edge Function gemini
+  try {
+    const t0 = Date.now();
+    const r = await fetch(`${CONFIG.SUPABASE_URL}/functions/v1/gemini`, { method: 'POST', headers: { ...H, Authorization: 'Bearer ' + s.access_token }, body: JSON.stringify({ model: CONFIG.GEMINI_MODEL, prompt: 'Return ONLY the JSON {"ok":true}' }) });
+    const ms = Date.now() - t0;
+    if (r.ok) out.push(['ok', `AI (Edge Function gemini): OK, ${ms} ms`]);
+    else if (r.status === 404) out.push(['bad', 'Chưa deploy Edge Function "gemini" trên Supabase → không dịch được']);
+    else { const d = await r.json().catch(() => ({})); out.push(['bad', `AI lỗi ${r.status}: ${d.error?.message || d.error || ''}`.trim() + (r.status === 500 ? ' (chưa đặt secret GEMINI_API_KEY?)' : '')]); }
+  } catch (e) { out.push(['bad', 'AI không phản hồi: ' + e.message]); }
+  return out;
 }
 
 /** Gửi một từ vào Hộp thư từ của tài khoản (kèm nghĩa nếu đã dịch được). Trả về id dòng vừa thêm. */
@@ -110,9 +136,21 @@ export async function addWord({ word, context = '', url = '', title = '', def = 
   });
   if (!r.ok) {
     const d = await r.json().catch(() => ({}));
+    if (/column .* does not exist|schema cache/i.test(d.message || '')) return addWordBasic({ word, context, url, title });
     if (r.status === 404 || /inbox_words/.test(d.message || '')) throw new Error('Chưa có bảng inbox_words – chạy lại supabase/schema.sql');
     throw new Error(d.message || `HTTP ${r.status}`);
   }
+  const rows = await r.json().catch(() => []);
+  return rows[0]?.id;
+}
+// Schema cũ chưa có cột meaning/phonetic… → thêm lại chỉ với các cột cơ bản
+async function addWordBasic({ word, context, url, title }) {
+  const s = await getToken();
+  const r = await fetch(`${CONFIG.SUPABASE_URL}/rest/v1/inbox_words?select=id`, {
+    method: 'POST', headers: { ...H, Authorization: 'Bearer ' + s.access_token, Prefer: 'return=representation' },
+    body: JSON.stringify({ user_id: s.user.id, word, context: context.slice(0, 500), source_url: url.slice(0, 500), source_title: title.slice(0, 200) }),
+  });
+  if (!r.ok) { const d = await r.json().catch(() => ({})); throw new Error(d.message || `HTTP ${r.status}`); }
   const rows = await r.json().catch(() => []);
   return rows[0]?.id;
 }
