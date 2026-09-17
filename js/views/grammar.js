@@ -1,12 +1,12 @@
-import { $, $$, esc, shuffle, sample, toast, isTyping, normalizeAnswer } from '../utils.js?v=10';
-import { Store } from '../store.js?v=10';
-import { TTS } from '../tts.js?v=10';
-import { setTitle, renderSidebar } from '../shell.js?v=10';
-import { isModalOpen } from '../modal.js?v=10';
-import { onLeave, go } from '../router.js?v=10';
-import { TENSES, TENSE_BY_ID, LEVELS } from '../grammar/tenses.js?v=10';
-import { bankQuestions } from '../grammar/bank.js?v=10';
-import { genMany } from '../grammar/gen.js?v=10';
+import { $, $$, esc, shuffle, sample, toast, isTyping, normalizeAnswer } from '../utils.js?v=11';
+import { Store } from '../store.js?v=11';
+import { TTS } from '../tts.js?v=11';
+import { setTitle, renderSidebar } from '../shell.js?v=11';
+import { isModalOpen } from '../modal.js?v=11';
+import { onLeave, go } from '../router.js?v=11';
+import { TENSES, TENSE_BY_ID, LEVELS } from '../grammar/tenses.js?v=11';
+import { bankQuestions } from '../grammar/bank.js?v=11';
+import { genMany } from '../grammar/gen.js?v=11';
 
 const GROUPS = ['Hiện tại', 'Quá khứ', 'Tương lai'];
 const MIX = { id: 'mix', name: 'Mixed Tenses', vi: 'Tổng hợp 13 thì', icon: '🎲', short: 'Trộn ngẫu nhiên tất cả các thì – luyện phân biệt' };

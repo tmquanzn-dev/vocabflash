@@ -125,3 +125,7 @@ alter table public.inbox_words add column if not exists phonetic   text default 
 alter table public.inbox_words add column if not exists pos        text default '';
 alter table public.inbox_words add column if not exists example_vi text default '';
 alter table public.inbox_words add column if not exists note       text default '';
+
+-- Extension thêm từ trước rồi cập nhật nghĩa sau khi dịch xong → cần quyền update dòng của mình
+drop policy if exists "inbox update own" on public.inbox_words;
+create policy "inbox update own" on public.inbox_words for update to authenticated using (auth.uid() = user_id) with check (auth.uid() = user_id);

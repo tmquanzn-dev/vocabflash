@@ -1,9 +1,9 @@
-import { $, $$, esc, levelBadge, normalizeAnswer, isPhrase, POS_SHORT } from '../utils.js?v=10';
-import { Store } from '../store.js?v=10';
-import { TTS } from '../tts.js?v=10';
-import { setTitle } from '../shell.js?v=10';
-import { wordForm } from '../forms.js?v=10';
-import { openModal, closeModal } from '../modal.js?v=10';
+import { $, $$, esc, levelBadge, normalizeAnswer, isPhrase, POS_SHORT } from '../utils.js?v=11';
+import { Store } from '../store.js?v=11';
+import { TTS } from '../tts.js?v=11';
+import { setTitle } from '../shell.js?v=11';
+import { wordForm } from '../forms.js?v=11';
+import { openModal, closeModal } from '../modal.js?v=11';
 
 let searchQ = '';
 let searchMode = 'both'; // en | vi | both

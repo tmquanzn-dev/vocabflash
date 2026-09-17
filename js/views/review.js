@@ -1,7 +1,7 @@
-import { esc, shuffle, fmtDue } from '../utils.js?v=10';
-import { Store } from '../store.js?v=10';
-import { setTitle } from '../shell.js?v=10';
-import { runFlashSession } from './flashcards.js?v=10';
+import { esc, shuffle, fmtDue } from '../utils.js?v=11';
+import { Store } from '../store.js?v=11';
+import { setTitle } from '../shell.js?v=11';
+import { runFlashSession } from './flashcards.js?v=11';
 
 /* Ôn tập các từ đến hạn (Spaced Repetition) */
 export function viewReview(el) {

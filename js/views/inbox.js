@@ -1,12 +1,12 @@
-import { $, $$, esc, toast, isPhrase, POS_LIST } from '../utils.js?v=10';
-import { Store } from '../store.js?v=10';
-import { Auth } from '../auth.js?v=10';
-import { setTitle, renderSidebar } from '../shell.js?v=10';
-import { confirmModal } from '../modal.js?v=10';
-import { Inbox } from '../inbox.js?v=10';
-import { AI } from '../ai.js?v=10';
-import { lookupWord } from '../dictionary.js?v=10';
-import { go } from '../router.js?v=10';
+import { $, $$, esc, toast, isPhrase, POS_LIST } from '../utils.js?v=11';
+import { Store } from '../store.js?v=11';
+import { Auth } from '../auth.js?v=11';
+import { setTitle, renderSidebar } from '../shell.js?v=11';
+import { confirmModal } from '../modal.js?v=11';
+import { Inbox } from '../inbox.js?v=11';
+import { AI } from '../ai.js?v=11';
+import { lookupWord } from '../dictionary.js?v=11';
+import { go } from '../router.js?v=11';
 
 const INBOX_TOPIC = '📥 Từ extension';
 // Bản nháp nghĩa/phiên âm đã điền cho từng dòng inbox (giữ khi vẽ lại)
@@ -93,5 +93,9 @@ export function viewInbox(el) {
   }
   const first = !curEl; curEl = el;
   draw();
-  if (first) Inbox.onChange(() => { if (location.hash === '#/inbox' && curEl?.isConnected) viewInbox(curEl); });
+  if (first) Inbox.onChange(() => {
+    // Nghĩa do extension dịch xong tới sau → điền vào bản nháp còn trống
+    Inbox.items.forEach(it => { const d = drafts[it.id]; if (d) { if (!d.meaning && it.meaning) d.meaning = it.meaning; if (!d.phonetic && it.phonetic) d.phonetic = it.phonetic; if (!d.pos && it.pos) d.pos = it.pos; if (!d.exampleVi && it.example_vi) d.exampleVi = it.example_vi; if (!d.note && it.note) d.note = it.note; if (it.word && d.word === it.word) d.word = it.word; } });
+    if (location.hash === '#/inbox' && curEl?.isConnected) viewInbox(curEl);
+  });
 }

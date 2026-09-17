@@ -1,4 +1,4 @@
-import { addWord, defineWord } from './api.js';
+import { addWord, defineWord, updateWord } from './api.js';
 
 /* Menu chuột phải "Thêm vào VocabFlash" khi bôi đen chữ trên trang web */
 chrome.runtime.onInstalled.addListener(() => {
@@ -17,10 +17,14 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
     context = r?.result || '';
   } catch { /* ví dụ: trang chrome:// hoặc PDF */ }
   try {
-    const def = await defineWord(word, context); // dịch nghĩa (nếu Edge Function đã triển khai)
-    await addWord({ word, context, url: info.pageUrl || tab.url || '', title: tab.title || '', def });
-    notify(def ? `${word} ${def.phonetic ? def.phonetic + ' ' : ''}= ${def.meaning}` : `Đã thêm "${word}" vào Hộp thư từ VocabFlash`, def ? 'Đã thêm vào VocabFlash' : undefined);
-  } catch (e) { notify('Không thêm được: ' + e.message); }
+    // Thêm ngay (web nhận được tức thì qua realtime), dịch nghĩa chạy nền rồi cập nhật sau
+    const id = await addWord({ word, context, url: info.pageUrl || tab.url || '', title: tab.title || '' });
+    busy(true);
+    const def = await defineWord(word, context); // qua Edge Function gemini (nếu đã triển khai)
+    busy(false);
+    if (def && id) await updateWord(id, def);
+    notify(def ? `${def.word || word} ${def.phonetic ? def.phonetic + ' ' : ''}= ${def.meaning}` : `Đã thêm "${word}" vào Hộp thư từ VocabFlash`, def ? 'Đã thêm vào VocabFlash' : undefined);
+  } catch (e) { busy(false); notify('Không thêm được: ' + e.message); }
 });
 
 // Hàm này được tiêm vào trang: tìm câu chứa đoạn đang bôi đen
@@ -37,6 +41,9 @@ function sentenceAround(word) {
     return hit.trim().slice(0, 400);
   } catch { return ''; }
 }
+
+// Dấu "…" trên icon khi đang dịch
+function busy(on) { chrome.action.setBadgeText({ text: on ? '…' : '' }); if (on) chrome.action.setBadgeBackgroundColor({ color: '#5b5ff7' }); }
 
 function notify(message, title = 'VocabFlash') {
   chrome.notifications.create({ type: 'basic', iconUrl: 'icon128.png', title, message, silent: true }, id => {

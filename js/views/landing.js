@@ -1,7 +1,7 @@
-import { $ } from '../utils.js?v=10';
-import { Auth } from '../auth.js?v=10';
-import { CONFIG } from '../config.js?v=10';
-import { toggleTheme } from '../shell.js?v=10';
+import { $ } from '../utils.js?v=11';
+import { Auth } from '../auth.js?v=11';
+import { CONFIG } from '../config.js?v=11';
+import { toggleTheme } from '../shell.js?v=11';
 
 /* Trang giới thiệu cho người chưa đăng nhập */
 export function viewLanding(el) {

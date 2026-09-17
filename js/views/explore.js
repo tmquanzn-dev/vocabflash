@@ -1,10 +1,10 @@
-import { $, $$, esc, toast, debounce } from '../utils.js?v=10';
-import { Store } from '../store.js?v=10';
-import { Auth } from '../auth.js?v=10';
-import { setTitle, avatarHTML, renderSidebar } from '../shell.js?v=10';
-import { openModal, closeModal, confirmModal } from '../modal.js?v=10';
-import { Community } from '../community.js?v=10';
-import { go } from '../router.js?v=10';
+import { $, $$, esc, toast, debounce } from '../utils.js?v=11';
+import { Store } from '../store.js?v=11';
+import { Auth } from '../auth.js?v=11';
+import { setTitle, avatarHTML, renderSidebar } from '../shell.js?v=11';
+import { openModal, closeModal, confirmModal } from '../modal.js?v=11';
+import { Community } from '../community.js?v=11';
+import { go } from '../router.js?v=11';
 
 const st = { q: '', sort: 'top', tab: 'all' };
 

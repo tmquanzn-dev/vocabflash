@@ -1,10 +1,10 @@
-import { $, $$, esc, toast, isPhrase, POS_LIST, EMOJIS } from '../utils.js?v=10';
-import { Store } from '../store.js?v=10';
-import { setTitle, renderSidebar } from '../shell.js?v=10';
-import { AI } from '../ai.js?v=10';
-import { lookupWord } from '../dictionary.js?v=10';
-import { TTS } from '../tts.js?v=10';
-import { go } from '../router.js?v=10';
+import { $, $$, esc, toast, isPhrase, POS_LIST, EMOJIS } from '../utils.js?v=11';
+import { Store } from '../store.js?v=11';
+import { setTitle, renderSidebar } from '../shell.js?v=11';
+import { AI } from '../ai.js?v=11';
+import { lookupWord } from '../dictionary.js?v=11';
+import { TTS } from '../tts.js?v=11';
+import { go } from '../router.js?v=11';
 
 /**
  * Thêm nhanh một từ từ bên ngoài (bookmarklet / link chia sẻ):

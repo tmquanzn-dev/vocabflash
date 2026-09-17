@@ -27,11 +27,15 @@ Deno.serve(async (req) => {
   const prompt = String(body.prompt || '').slice(0, MAX_PROMPT);
   if (prompt.length < 10) return json({ error: 'Thiếu prompt' }, 400);
 
-  const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
+  const call = (extra: Record<string, unknown>) => fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
-    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { responseMimeType: 'application/json', temperature: body.temperature ?? 0.3 } }),
+    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { responseMimeType: 'application/json', temperature: body.temperature ?? 0.3, ...extra } }),
   });
+  // Model Gemini 3 mặc định "suy nghĩ" khá lâu; với việc tra từ / trích từ, mức thấp là đủ và nhanh gấp nhiều lần.
+  // Nếu model không nhận tham số này (400) thì gọi lại không kèm.
+  let r = await call(model.startsWith('gemini-3') ? { thinkingConfig: { thinkingLevel: 'low' } } : {});
+  if (r.status === 400 && model.startsWith('gemini-3')) r = await call({});
   // Trả nguyên kết quả của Google (kể cả lỗi) để client xử lý như gọi trực tiếp
   return new Response(await r.text(), { status: r.status, headers: { ...cors, 'Content-Type': 'application/json' } });
 });

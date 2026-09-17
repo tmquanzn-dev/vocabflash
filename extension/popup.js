@@ -1,5 +1,5 @@
 import { CONFIG } from './config.js';
-import { getSession, login, logout, addWord, defineWord, pendingCount } from './api.js';
+import { getSession, login, logout, addWord, defineWords, updateWord, pendingCount } from './api.js';
 
 const $ = s => document.querySelector(s);
 const msg = (el, text, ok) => { el.textContent = text; el.className = 'msg ' + (text ? (ok ? 'ok' : 'err') : ''); };
@@ -25,15 +25,20 @@ $('#btnLogin').addEventListener('click', async () => {
 $('#password').addEventListener('keydown', e => { if (e.key === 'Enter') $('#btnLogin').click(); });
 $('#btnLogout').addEventListener('click', async () => { await logout(); render(); });
 
+// Thêm nhanh: nhiều từ cách nhau bằng dấu phẩy / chấm phẩy / xuống dòng → thêm hết, dịch cả loạt trong 1 lời gọi
 const quick = async () => {
-  const word = $('#quickWord').value.replace(/\s+/g, ' ').trim(); if (!word) return;
+  const words = [...new Set($('#quickWord').value.split(/[,;\n]+/).map(w => w.replace(/\s+/g, ' ').trim()).filter(w => w && w.length <= 80))];
+  if (!words.length) return;
   const b = $('#btnQuick'); b.disabled = true;
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    msg($('#mainMsg'), '⏳ Đang dịch...', true);
-    const def = await defineWord(word);
-    await addWord({ word, url: tab?.url && /^https?:/.test(tab.url) ? tab.url : '', title: tab?.title || '', def });
-    $('#quickWord').value = ''; msg($('#mainMsg'), def ? `✔ ${word} ${def.phonetic} = ${def.meaning}` : `Đã thêm "${word}"`, true); render();
+    const src = { url: tab?.url && /^https?:/.test(tab.url) ? tab.url : '', title: tab?.title || '' };
+    const ids = await Promise.all(words.map(word => addWord({ word, ...src })));
+    $('#quickWord').value = ''; msg($('#mainMsg'), `Đã thêm ${words.length} từ – ⏳ đang dịch...`, true); render();
+    const defs = await defineWords(words.map(word => ({ word })));
+    await Promise.all(defs.map((def, i) => def && ids[i] ? updateWord(ids[i], def) : null));
+    const lines = words.map((w, i) => defs[i] ? `✔ ${defs[i].word || w} ${defs[i].phonetic} = ${defs[i].meaning}` : `✔ ${w} (chưa dịch được)`);
+    msg($('#mainMsg'), lines.join('\n'), true);
   } catch (e) { msg($('#mainMsg'), e.message, false); }
   finally { b.disabled = false; }
 };

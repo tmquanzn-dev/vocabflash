@@ -1,5 +1,5 @@
-import { Store } from './store.js?v=10';
-import { toast } from './utils.js?v=10';
+import { Store } from './store.js?v=11';
+import { toast } from './utils.js?v=11';
 
 /* Phát âm: Web Speech API của trình duyệt, ưu tiên audio từ điển (người thật) nếu có */
 export const TTS = {

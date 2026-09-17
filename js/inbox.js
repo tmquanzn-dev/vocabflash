@@ -1,6 +1,6 @@
-import { $, toast } from './utils.js?v=10';
-import { Auth } from './auth.js?v=10';
-import { Store } from './store.js?v=10';
+import { $, toast } from './utils.js?v=11';
+import { Auth } from './auth.js?v=11';
+import { Store } from './store.js?v=11';
 
 /**
  * Hộp thư từ: các từ do extension Chrome gửi lên bảng public.inbox_words.
@@ -18,20 +18,17 @@ export const Inbox = {
     this.close();
     if (!this.available) return;
     await this.load();
-    try {
-      this._channel = Auth.sb.channel('inbox_' + this.user())
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'inbox_words', filter: `user_id=eq.${this.user()}` }, payload => {
-          if (payload.eventType === 'INSERT' && payload.new) { if (!this.items.some(x => x.id === payload.new.id)) { this.items.push(payload.new); toast(`📥 Nhận từ mới từ extension: "${payload.new.word}"`, 3500); } }
-          else if (payload.eventType === 'DELETE' && payload.old) this.items = this.items.filter(x => x.id !== payload.old.id);
-          this._emit();
-        }).subscribe();
-    } catch (e) { console.warn('Realtime inbox không khả dụng', e); }
+  },
+  // Sự kiện realtime (đi qua kênh chung của Store): thêm / cập nhật nghĩa (extension dịch xong) / xoá
+  _onRealtime(payload) {
+    if (!this.available) return;
+    if (payload.eventType === 'INSERT' && payload.new) { if (!this.items.some(x => x.id === payload.new.id)) { this.items.push(payload.new); toast(`📥 Nhận từ mới từ extension: "${payload.new.word}"`, 3500); } }
+    else if (payload.eventType === 'UPDATE' && payload.new) { const i = this.items.findIndex(x => x.id === payload.new.id); if (i >= 0) this.items[i] = { ...this.items[i], ...payload.new }; else this.items.push(payload.new); }
+    else if (payload.eventType === 'DELETE' && payload.old) this.items = this.items.filter(x => x.id !== payload.old.id);
+    this._emit();
   },
   user() { return Auth.user?.id; },
-  close() {
-    if (this._channel) { try { Auth.sb.removeChannel(this._channel); } catch { /* ignore */ } this._channel = null; }
-    this.items = []; this.renderBadge();
-  },
+  close() { this.items = []; this.renderBadge(); },
   async load() {
     if (!this.available) return [];
     try {
@@ -51,3 +48,4 @@ export const Inbox = {
   },
   renderBadge() { const b = $('#inboxBadge'); if (b) b.textContent = this.items.length || ''; },
 };
+Store.onInbox(p => Inbox._onRealtime(p));

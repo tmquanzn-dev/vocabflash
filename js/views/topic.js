@@ -1,10 +1,10 @@
-import { $, $$, esc, toast, levelBadge, isPhrase, POS_SHORT } from '../utils.js?v=10';
-import { Store } from '../store.js?v=10';
-import { TTS } from '../tts.js?v=10';
-import { setTitle } from '../shell.js?v=10';
-import { confirmModal } from '../modal.js?v=10';
-import { topicForm, wordForm, bulkForm, shareTopicForm } from '../forms.js?v=10';
-import { render, go } from '../router.js?v=10';
+import { $, $$, esc, toast, levelBadge, isPhrase, POS_SHORT } from '../utils.js?v=11';
+import { Store } from '../store.js?v=11';
+import { TTS } from '../tts.js?v=11';
+import { setTitle } from '../shell.js?v=11';
+import { confirmModal } from '../modal.js?v=11';
+import { topicForm, wordForm, bulkForm, shareTopicForm } from '../forms.js?v=11';
+import { render, go } from '../router.js?v=11';
 
 // sel: null = bình thường; Set = đang ở chế độ chọn nhiều từ để xoá
 const st = { q: '', filter: 'all', sort: 'new', kind: 'all', sel: null, topicId: null };

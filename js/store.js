@@ -1,6 +1,6 @@
-import { uid, INTERVALS, MAX_LEVEL, DAY, todayKey, weekKey, debounce, toast, isPhrase } from './utils.js?v=10';
-import { Auth } from './auth.js?v=10';
-import { CONFIG } from './config.js?v=10';
+import { uid, INTERVALS, MAX_LEVEL, DAY, todayKey, weekKey, debounce, toast, isPhrase } from './utils.js?v=11';
+import { Auth } from './auth.js?v=11';
+import { CONFIG } from './config.js?v=11';
 
 /**
  * Kho dữ liệu của người dùng đang đăng nhập.
@@ -113,11 +113,16 @@ export const Store = {
 
   /* ---------- đồng bộ giữa thiết bị / tab ---------- */
   // Nhận thay đổi của cùng tài khoản từ thiết bị khác qua Supabase Realtime
+  _inboxListeners: [],
+  /** Nhận thay đổi bảng inbox_words (từ do extension gửi) qua cùng kênh realtime – tiết kiệm kết nối */
+  onInbox(cb) { this._inboxListeners.push(cb); },
   _subscribeRealtime() {
     try {
-      this._channel = Auth.sb.channel('user_data_' + this.user.id)
+      this._channel = Auth.sb.channel('vf_' + this.user.id)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'user_data', filter: `user_id=eq.${this.user.id}` },
           payload => this._applyRemote(payload.new?.data))
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'inbox_words', filter: `user_id=eq.${this.user.id}` },
+          payload => this._inboxListeners.forEach(cb => cb(payload)))
         .subscribe();
     } catch (e) { console.warn('Realtime không khả dụng', e); }
   },

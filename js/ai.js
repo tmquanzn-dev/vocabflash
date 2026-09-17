@@ -1,6 +1,6 @@
-import { fetchTimeout } from './utils.js?v=10';
-import { CONFIG, isCloudEnabled } from './config.js?v=10';
-import { Auth } from './auth.js?v=10';
+import { fetchTimeout } from './utils.js?v=11';
+import { CONFIG, isCloudEnabled } from './config.js?v=11';
+import { Auth } from './auth.js?v=11';
 
 /**
  * AI trích xuất từ vựng: dùng Gemini API (Google AI Studio) với API key của chính người dùng, lưu trên máy này.
@@ -51,11 +51,14 @@ export const AI = {
     let r;
     try {
       if (this.key) {
-        r = await fetchTimeout(`${BASE}/models/${encodeURIComponent(model)}:generateContent`, AI_TIMEOUT, {
+        // Gemini 3: giảm mức "suy nghĩ" để trả lời nhanh; model không nhận tham số (400) thì gọi lại không kèm
+        const direct = extra => fetchTimeout(`${BASE}/models/${encodeURIComponent(model)}:generateContent`, AI_TIMEOUT, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'x-goog-api-key': this.key },
-          body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { responseMimeType: 'application/json', temperature: 0.3 } }),
+          body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { responseMimeType: 'application/json', temperature: 0.3, ...extra } }),
         });
+        r = await direct(model.startsWith('gemini-3') ? { thinkingConfig: { thinkingLevel: 'low' } } : {});
+        if (r.status === 400 && model.startsWith('gemini-3')) r = await direct({});
       } else if (isCloudEnabled()) {
         r = await fetchTimeout(`${CONFIG.SUPABASE_URL}/functions/v1/gemini`, AI_TIMEOUT, {
           method: 'POST',

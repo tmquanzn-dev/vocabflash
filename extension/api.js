@@ -30,28 +30,52 @@ export async function getToken() {
   return s;
 }
 
-/** Dịch nghĩa một từ theo ngữ cảnh qua Edge Function "gemini" (key nằm ở server). Lỗi → trả về null, vẫn thêm từ được. */
-export async function defineWord(word, context = '') {
+/**
+ * Dịch nghĩa nhiều từ trong MỘT lời gọi qua Edge Function "gemini" (key nằm ở server).
+ * items: [{ word, context }] → mảng cùng thứ tự, phần tử null nếu không dịch được. Lỗi → toàn bộ null (vẫn thêm từ được).
+ */
+export async function defineWords(items) {
   try {
     const s = await getToken();
-    const prompt = `You are an English–Vietnamese dictionary for a Vietnamese learner. For the item below give JSON with keys: "word" (dictionary/base form), "phonetic" (IPA like "/rɪˈzɪliənt/"), "pos" (noun|verb|adjective|adverb|phrase|preposition|pronoun|conjunction|interjection), "meaning" (concise Vietnamese meaning as used in the context), "exampleVi" (Vietnamese translation of the context, or ""), "note" (short English definition, max 15 words). Return ONLY the JSON object.
-INPUT: ${JSON.stringify({ word, context: context.slice(0, 300) })}`;
-    const c = new AbortController(); const t = setTimeout(() => c.abort(), 40000);
+    const prompt = `You are an English–Vietnamese dictionary for a Vietnamese learner. For EACH item in INPUT return an object with keys:
+- "word": the item text itself, cleaned. If it is a single word give its dictionary/base form; if it is a phrase / collocation / multi-word expression KEEP THE WHOLE PHRASE (never shorten it to one word)
+- "phonetic": IPA of the whole item, e.g. "/rɪˈzɪliənt/"
+- "pos": one of noun, verb, adjective, adverb, phrase, preposition, pronoun, conjunction, interjection
+- "meaning": concise Vietnamese meaning; if "context" is given, the meaning as used in that context
+- "exampleVi": Vietnamese translation of "context" ("" if no context)
+- "note": short English definition (max 15 words)
+Return ONLY a JSON array with exactly ${items.length} objects, same order as INPUT.
+INPUT: ${JSON.stringify(items.map(i => ({ word: i.word, context: (i.context || '').slice(0, 300) })))}`;
+    const c = new AbortController(); const t = setTimeout(() => c.abort(), 45000);
     const r = await fetch(`${CONFIG.SUPABASE_URL}/functions/v1/gemini`, { method: 'POST', signal: c.signal, headers: { ...H, Authorization: 'Bearer ' + s.access_token }, body: JSON.stringify({ model: CONFIG.GEMINI_MODEL, prompt }) }).finally(() => clearTimeout(t));
-    if (!r.ok) return null;
+    if (!r.ok) return items.map(() => null);
     const d = await r.json();
     const raw = d.candidates?.[0]?.content?.parts?.map(p => p.text).join('') || '';
-    const w = JSON.parse(raw.replace(/^```(?:json)?\s*|\s*```$/g, ''));
-    return w && w.meaning ? { word: String(w.word || word), phonetic: String(w.phonetic || ''), pos: String(w.pos || '').toLowerCase(), meaning: String(w.meaning), exampleVi: String(w.exampleVi || ''), note: String(w.note || '') } : null;
-  } catch { return null; }
+    let out = JSON.parse(raw.replace(/^```(?:json)?\s*|\s*```$/g, ''));
+    if (!Array.isArray(out)) out = out.items || out.words || [out];
+    return items.map((it, i) => {
+      const w = out[i] || out.find(x => x && x.word && String(x.word).toLowerCase() === it.word.toLowerCase());
+      return w && w.meaning ? { word: String(w.word || it.word), phonetic: String(w.phonetic || ''), pos: String(w.pos || '').toLowerCase(), meaning: String(w.meaning), exampleVi: String(w.exampleVi || ''), note: String(w.note || '') } : null;
+    });
+  } catch { return items.map(() => null); }
+}
+export const defineWord = async (word, context = '') => (await defineWords([{ word, context }]))[0];
+
+/** Cập nhật nghĩa cho dòng inbox đã thêm (sau khi dịch xong) */
+export async function updateWord(id, def) {
+  const s = await getToken();
+  await fetch(`${CONFIG.SUPABASE_URL}/rest/v1/inbox_words?id=eq.${id}&user_id=eq.${s.user.id}`, {
+    method: 'PATCH', headers: { ...H, Authorization: 'Bearer ' + s.access_token, Prefer: 'return=minimal' },
+    body: JSON.stringify({ word: def.word || undefined, meaning: def.meaning, phonetic: def.phonetic, pos: def.pos, example_vi: def.exampleVi, note: def.note }),
+  });
 }
 
-/** Gửi một từ vào Hộp thư từ của tài khoản (kèm nghĩa nếu đã dịch được) */
+/** Gửi một từ vào Hộp thư từ của tài khoản (kèm nghĩa nếu đã dịch được). Trả về id dòng vừa thêm. */
 export async function addWord({ word, context = '', url = '', title = '', def = null }) {
   const s = await getToken();
-  const r = await fetch(`${CONFIG.SUPABASE_URL}/rest/v1/inbox_words`, {
+  const r = await fetch(`${CONFIG.SUPABASE_URL}/rest/v1/inbox_words?select=id`, {
     method: 'POST',
-    headers: { ...H, Authorization: 'Bearer ' + s.access_token, Prefer: 'return=minimal' },
+    headers: { ...H, Authorization: 'Bearer ' + s.access_token, Prefer: 'return=representation' },
     body: JSON.stringify({ user_id: s.user.id, word, context: context.slice(0, 500), source_url: url.slice(0, 500), source_title: title.slice(0, 200),
       meaning: def?.meaning || '', phonetic: def?.phonetic || '', pos: def?.pos || '', example_vi: def?.exampleVi || '', note: def?.note || '' }),
   });
@@ -60,6 +84,8 @@ export async function addWord({ word, context = '', url = '', title = '', def = 
     if (r.status === 404 || /inbox_words/.test(d.message || '')) throw new Error('Chưa có bảng inbox_words – chạy lại supabase/schema.sql');
     throw new Error(d.message || `HTTP ${r.status}`);
   }
+  const rows = await r.json().catch(() => []);
+  return rows[0]?.id;
 }
 
 /** Số từ đang chờ trong hộp thư */
