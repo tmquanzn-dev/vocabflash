@@ -48,7 +48,16 @@ export function viewSettings(el) {
       <div class="card">
         <h3>➕ Thêm từ ngay khi đang đọc báo</h3>
         <p class="muted small"><b>Cách 1 – Bookmarklet (không cần cài gì, mọi trình duyệt):</b> kéo nút dưới đây lên <b>thanh dấu trang</b> (Ctrl+Shift+B để hiện thanh). Khi đọc trang tiếng Anh, bôi đen từ rồi bấm nút đó → VocabFlash mở ra với từ + câu chứa từ đã điền sẵn.</p>
-        <div class="row mb"><a class="btn btn-primary bookmarklet" id="sBm" href="${esc(bookmarklet())}" title="Kéo tôi lên thanh dấu trang" draggable="true">➕ VocabFlash</a><span class="hint">Trên điện thoại: thêm dấu trang bất kỳ rồi sửa URL thành nội dung nút này (bấm "Sao chép mã"). <button class="link" id="sBmCopy">Sao chép mã</button></span></div>
+        <div class="row mb"><a class="btn btn-primary bookmarklet" id="sBm" href="${esc(bookmarklet())}" title="Kéo tôi lên thanh dấu trang" draggable="true">➕ VocabFlash</a><span class="hint">Kéo không được? Dùng cách thủ công bên dưới.</span></div>
+        <details class="bm-manual mb"><summary>Tạo thủ công (20 giây, không cần kéo)</summary>
+          <ol class="muted small" style="margin:8px 0 0;padding-left:18px">
+            <li>Bấm <button class="btn btn-sm" id="sBmCopy">📋 Sao chép mã bookmarklet</button></li>
+            <li>Nhấn <span class="kbd">Ctrl</span>+<span class="kbd">D</span> (hoặc bấm ⭐ trên thanh địa chỉ) → chọn <b>Thêm / Xong</b> để lưu trang này thành dấu trang.</li>
+            <li>Chuột phải vào dấu trang vừa tạo trên thanh dấu trang → <b>Chỉnh sửa</b> → Tên: <code>➕ VocabFlash</code>, <b>URL: xoá hết rồi dán mã</b> vừa sao chép → Lưu.</li>
+            <li>Mở một trang tiếng Anh, bôi đen từ, bấm dấu trang đó → VocabFlash mở với từ đã điền sẵn.</li>
+          </ol>
+          <p class="hint" style="margin-top:6px">Thanh dấu trang ẩn? Nhấn <span class="kbd">Ctrl</span>+<span class="kbd">Shift</span>+<span class="kbd">B</span>. Trên điện thoại (Chrome Android): tạo dấu trang bất kỳ rồi vào Dấu trang → ⋮ → Chỉnh sửa → dán mã vào URL; khi dùng, gõ tên "VocabFlash" vào thanh địa chỉ để gọi.</p>
+        </details>
         <p class="muted small"><b>Cách 2 – Extension Chrome:</b> bôi đen → chuột phải → <b>Thêm vào VocabFlash</b> → từ về <a href="#/inbox" style="color:var(--primary)">📥 Hộp thư từ</a> (kèm câu chứa từ), điền nghĩa bằng AI rồi thêm vào chủ đề.</p>
         <ol class="muted small" style="margin:0 0 10px;padding-left:18px">
           <li><a href="extension/vocabflash-extension.zip" download style="color:var(--primary)">⬇️ Tải extension (.zip)</a> rồi giải nén ra một thư mục.</li>
@@ -82,7 +91,9 @@ export function viewSettings(el) {
   $('#sLb', el).addEventListener('change', e => { s.showOnLeaderboard = e.target.checked; save(); if (e.target.checked) Store.pushLeaderboard(); else Store.removeFromLeaderboard(); });
   $('#sGoal', el).addEventListener('change', e => { s.dailyGoal = Math.max(5, parseInt(e.target.value) || 20); save(); });
 
-  $('#sBm', el).addEventListener('click', e => { e.preventDefault(); toast('Hãy KÉO nút này lên thanh dấu trang (Ctrl+Shift+B để hiện thanh), không bấm', 4000); });
+  $('#sBm', el).addEventListener('click', e => { e.preventDefault(); toast('Hãy KÉO nút này lên thanh dấu trang (Ctrl+Shift+B để hiện thanh), hoặc dùng cách thủ công bên dưới', 4000); $('.bm-manual', el).open = true; });
+  // Cung cấp đầy đủ dữ liệu drag để Chrome/Edge tạo dấu trang khi thả lên thanh dấu trang
+  $('#sBm', el).addEventListener('dragstart', e => { const u = bookmarklet(); e.dataTransfer.effectAllowed = 'copyLink'; e.dataTransfer.setData('text/uri-list', u); e.dataTransfer.setData('text/plain', u); e.dataTransfer.setData('text/x-moz-url', u + '\n➕ VocabFlash'); });
   $('#sBmCopy', el).addEventListener('click', async () => { try { await navigator.clipboard.writeText(bookmarklet()); toast('Đã sao chép – dán vào URL của một dấu trang'); } catch { toast('Không sao chép được'); } });
   $('#sPassBtn', el)?.addEventListener('click', async e => {
     const b = e.currentTarget; b.disabled = true;
