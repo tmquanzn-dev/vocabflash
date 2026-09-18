@@ -1,6 +1,6 @@
-import { CONFIG, isCloudEnabled } from './config.js?v=12';
-import { getSupabase } from './supabase.js?v=12';
-import { uid, isValidEmail, fetchTimeout } from './utils.js?v=12';
+import { CONFIG, isCloudEnabled } from './config.js?v=13';
+import { getSupabase } from './supabase.js?v=13';
+import { uid, isValidEmail, fetchTimeout } from './utils.js?v=13';
 
 /**
  * Xác thực người dùng.

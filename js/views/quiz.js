@@ -1,10 +1,10 @@
-import { $, $$, esc, shuffle, sample, toast, isTyping, isPhrase, normalizeAnswer, hintFor, lengthClass } from '../utils.js?v=12';
-import { Store, clozeRegex } from '../store.js?v=12';
-import { resolveWordSet } from './flashcards.js?v=12';
-import { TTS } from '../tts.js?v=12';
-import { setTitle, renderSidebar } from '../shell.js?v=12';
-import { isModalOpen } from '../modal.js?v=12';
-import { onLeave, go } from '../router.js?v=12';
+import { $, $$, esc, shuffle, sample, toast, isTyping, isPhrase, normalizeAnswer, hintFor, lengthClass, splitList, wordKey, relHTML } from '../utils.js?v=13';
+import { Store, clozeRegex } from '../store.js?v=13';
+import { resolveWordSet } from './flashcards.js?v=13';
+import { TTS } from '../tts.js?v=13';
+import { setTitle, renderSidebar } from '../shell.js?v=13';
+import { isModalOpen } from '../modal.js?v=13';
+import { onLeave, go } from '../router.js?v=13';
 
 const QUIZ_MODES = [
   { id: 'mc-en-vi', ic: '🇬🇧→🇻🇳', t: 'Chọn nghĩa', d: 'Nhìn từ tiếng Anh, chọn nghĩa đúng' },
@@ -12,6 +12,7 @@ const QUIZ_MODES = [
   { id: 'listen', ic: '🎧', t: 'Nghe chọn từ', d: 'Nghe phát âm, chọn từ đúng' },
   { id: 'spell', ic: '⌨️', t: 'Nghe & viết', d: 'Nghe phát âm + xem nghĩa, gõ lại từ' },
   { id: 'cloze', ic: '✍️', t: 'Điền vào chỗ trống', d: 'Hoàn thành câu ví dụ bằng từ đúng' },
+  { id: 'synant', ic: '≈≠', t: 'Đồng / trái nghĩa', d: 'Chọn từ đồng nghĩa hoặc trái nghĩa' },
   { id: 'mix', ic: '🎲', t: 'Tổng hợp', d: 'Trộn ngẫu nhiên tất cả dạng' },
 ];
 
@@ -27,10 +28,11 @@ export function viewQuiz(el, { id, parts }) {
   const maxN = 500; // có thể nhiều hơn số từ: từ sẽ lặp lại với dạng câu hỏi khác
   const defN = Store.settings.quizCount;
   const clozeCount = Store.clozeWords(words).length;
+  const synCount = Store.synWords(words).length;
   el.innerHTML = `
     <div class="quiz-wrap">
       <div class="page-head"><div><h1>📝 Quiz · ${set.icon} ${esc(set.name)}</h1><p class="muted">Chọn dạng bài kiểm tra</p></div><a class="btn btn-sm" href="${set.backLink}">← Quay lại</a></div>
-      <div class="mode-grid">${QUIZ_MODES.map(m => `<button class="mode-card ${m.id === mode ? 'active' : ''}" data-mode="${m.id}" ${m.id === 'cloze' && !clozeCount ? 'disabled title="Chưa có từ nào có câu ví dụ chứa chính từ đó"' : ''}><div class="ic">${m.ic}</div><div class="t">${m.t}</div><div class="d">${m.d}${m.id === 'cloze' ? ` (${clozeCount} từ)` : ''}</div></button>`).join('')}</div>
+      <div class="mode-grid">${QUIZ_MODES.map(m => `<button class="mode-card ${m.id === mode ? 'active' : ''}" data-mode="${m.id}" ${m.id === 'cloze' && !clozeCount ? 'disabled title="Chưa có từ nào có câu ví dụ chứa chính từ đó"' : ''} ${m.id === 'synant' && !synCount ? 'disabled title="Chưa có từ nào có đồng nghĩa / trái nghĩa – bấm 🔎 Tra hoặc ✨ AI khi thêm từ"' : ''}><div class="ic">${m.ic}</div><div class="t">${m.t}</div><div class="d">${m.d}${m.id === 'cloze' ? ` (${clozeCount} từ)` : m.id === 'synant' ? ` (${synCount} từ)` : ''}</div></button>`).join('')}</div>
       <div class="card mt row between">
         <div class="row"><label>Số câu hỏi:</label><input type="number" class="input" id="qN" min="1" max="${maxN}" value="${defN}" style="width:90px"> <span class="muted small">(${words.length} từ · nhiều hơn thì từ sẽ lặp lại)</span></div>
         <label class="check"><input type="checkbox" id="qWeak"> Ưu tiên từ chưa thuộc</label>
@@ -40,7 +42,7 @@ export function viewQuiz(el, { id, parts }) {
   $$('.mode-card', el).forEach(b => b.addEventListener('click', () => { if (b.disabled) return; mode = b.dataset.mode; $$('.mode-card', el).forEach(x => x.classList.toggle('active', x === b)); }));
   $('#qStart', el).addEventListener('click', () => {
     const n = Math.max(1, Math.min(maxN, parseInt($('#qN', el).value) || defN));
-    const base = mode === 'cloze' ? Store.clozeWords(words) : words; // điền chỗ trống chỉ dùng từ có ví dụ phù hợp
+    const base = mode === 'cloze' ? Store.clozeWords(words) : mode === 'synant' ? Store.synWords(words) : words; // dạng đặc biệt chỉ dùng từ có dữ liệu phù hợp
     if (!base.length) { toast('Không có từ phù hợp cho dạng này'); return; }
     // Ưu tiên từ chưa thuộc: chọn theo mức thấp trước; nếu cần nhiều hơn số từ thì lặp lại theo vòng
     const ordered = $('#qWeak', el).checked ? [...base].sort((a, b) => a.level - b.level || Math.random() - .5) : shuffle(base);
@@ -54,8 +56,10 @@ function runQuiz(el, { topic, words, picked, mode }) {
   const modes = ['mc-en-vi', 'mc-vi-en', 'listen', 'spell'];
   const questions = picked.map(w => {
     if (mode !== 'mix') return { w, mode };
-    // Tổng hợp: thêm dạng điền chỗ trống cho từ có ví dụ phù hợp
-    const pool = w.example && clozeRegex(w.word).test(w.example) ? [...modes, 'cloze'] : modes;
+    // Tổng hợp: thêm dạng điền chỗ trống / đồng-trái nghĩa cho từ có dữ liệu phù hợp
+    const pool = [...modes];
+    if (w.example && clozeRegex(w.word).test(w.example)) pool.push('cloze');
+    if (w.synonyms || w.antonyms) pool.push('synant');
     return { w, mode: pool[Math.floor(Math.random() * pool.length)] };
   });
   const st = { i: 0, correct: 0, wrong: [], answered: false };
@@ -72,11 +76,37 @@ function runQuiz(el, { topic, words, picked, mode }) {
     return shuffle([w, ...dist]);
   };
 
+  // Câu đồng / trái nghĩa: đáp án đúng là 1 từ trong danh sách của w; nhiễu lấy từ đồng/trái nghĩa của từ khác (hoặc chính từ khác)
+  const synQuestion = w => {
+    const syn = splitList(w.synonyms), ant = splitList(w.antonyms);
+    const useAnt = ant.length && (!syn.length || Math.random() < 0.4);
+    const list = useAnt ? ant : syn;
+    const correct = list[Math.floor(Math.random() * list.length)];
+    const own = new Set([...syn, ...ant, w.word].map(wordKey));
+    const cand = [];
+    for (const x of shuffle(allWords)) {
+      if (x.id === w.id) continue;
+      [...splitList(x.synonyms), ...splitList(x.antonyms), x.word].forEach(t => { if (!own.has(wordKey(t))) cand.push(t); });
+    }
+    const seen = new Set([wordKey(correct)]);
+    const dist = [];
+    for (const t of cand) { const k = wordKey(t); if (!seen.has(k)) { seen.add(k); dist.push(t); } if (dist.length >= 3) break; }
+    const options = shuffle([{ id: w.id, text: correct }, ...dist.map((t, i) => ({ id: 'd' + i, text: t }))]);
+    return { useAnt, options };
+  };
+
   const draw = () => {
     if (st.i >= questions.length) { drawResult(); return; }
     const q = questions[st.i], w = q.w;
     st.answered = false;
     let body = '';
+    if (q.mode === 'synant') {
+      const { useAnt, options } = synQuestion(w);
+      body = `<div class="q-sub">Từ nào <b>${useAnt ? 'TRÁI nghĩa' : 'ĐỒNG nghĩa'}</b> với từ này?</div>
+        <div class="q-prompt ${lengthClass(w.word)}">${esc(w.word)} <button class="btn-icon btn-speak" data-act="speak">🔊</button></div>
+        <div class="muted small" style="margin-bottom:12px">${esc(w.meaning)}</div>
+        <div class="q-options">${options.map((o, i) => `<button class="q-opt" data-id="${o.id}"><span class="q-num">${i + 1}</span>${esc(o.text)}</button>`).join('')}</div>`;
+    } else
     if (q.mode === 'mc-en-vi') {
       body = `<div class="q-sub">Nghĩa của từ này là gì?</div>
         <div class="q-prompt ${lengthClass(w.word)}">${esc(w.word)} <button class="btn-icon btn-speak" data-act="speak">🔊</button></div>
@@ -122,6 +152,7 @@ function runQuiz(el, { topic, words, picked, mode }) {
         <div class="q-fb-text">
           <div class="q-fb-title">${ok ? '🎉 Chính xác!' : '❌ Chưa đúng'}</div>
           ${ok ? '' : `<div class="q-fb-ans">Đáp án: <b>${esc(w.word)}</b> <span class="ipa">${esc(w.phonetic)}</span> – ${esc(w.meaning)}</div>`}
+          ${questions[st.i].mode === 'synant' ? `<div class="q-fb-ans small rel-row">${w.synonyms ? `≈ ${relHTML(w.synonyms, 'syn')}` : ''}${w.antonyms ? ` ≠ ${relHTML(w.antonyms, 'ant')}` : ''}</div>` : ''}
         </div>
         <button class="btn ${ok ? 'btn-success' : 'btn-primary'}" data-act="next" autofocus>${last ? 'Xem kết quả' : 'Câu tiếp'} →</button>
       </div>

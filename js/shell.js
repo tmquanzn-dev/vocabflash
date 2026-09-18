@@ -1,8 +1,8 @@
-import { $, $$, esc, initials } from './utils.js?v=12';
-import { Store } from './store.js?v=12';
-import { Auth } from './auth.js?v=12';
-import { CONFIG } from './config.js?v=12';
-import { Inbox } from './inbox.js?v=12';
+import { $, $$, esc, initials } from './utils.js?v=13';
+import { Store } from './store.js?v=13';
+import { Auth } from './auth.js?v=13';
+import { CONFIG } from './config.js?v=13';
+import { Inbox } from './inbox.js?v=13';
 
 /* Khung giao diện chung: sidebar, thanh tiêu đề, giao diện sáng/tối, trạng thái đồng bộ */
 
@@ -39,6 +39,8 @@ export function renderSidebar(activeTopicId) {
     : '<li class="empty">Chưa có chủ đề nào. Bấm ＋ để tạo.</li>';
   const due = Store.dueWords().length;
   $('#dueBadge').textContent = due ? due : '';
+  // Số từ đến hạn hiện trên icon ứng dụng đã cài (PWA, nếu trình duyệt hỗ trợ)
+  try { if (navigator.setAppBadge) { due ? navigator.setAppBadge(due) : navigator.clearAppBadge(); } } catch { /* ignore */ }
   Inbox.renderBadge();
   renderUserCard();
   renderSyncState(Store.syncState);

@@ -22,6 +22,16 @@ export const isValidEmail = s => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
 export const isPhrase = s => /\s/.test(String(s || '').trim());
 // Chuẩn hoá để so sánh câu trả lời: bỏ hoa/thường, dấu câu, khoảng trắng thừa
 export const normalizeAnswer = s => String(s || '').toLowerCase().replace(/[^\p{L}\p{N}\s']/gu, ' ').replace(/\s+/g, ' ').trim();
+// Khoá so trùng từ: bỏ hoa/thường, dấu câu, khoảng trắng thừa ("Look forward to" ≡ "look forward to")
+export const wordKey = s => normalizeAnswer(s);
+// "big (to lớn), large ; huge" → [{ word: "big", vi: "to lớn" }, { word: "large", vi: "" }, { word: "huge", vi: "" }]
+// (nghĩa tiếng Việt để trong ngoặc ngay sau từ – không bắt buộc)
+export const parseRel = s => String(s || '').split(/[,;]+(?![^(]*\))/).map(x => x.trim()).filter(Boolean).map(x => { const m = x.match(/^(.*?)\s*\(([^)]*)\)\s*$/); return m ? { word: m[1].trim(), vi: m[2].trim() } : { word: x, vi: '' }; }).filter(x => x.word);
+export const formatRel = list => list.map(x => x.vi ? `${x.word} (${x.vi})` : x.word).join(', ');
+// Chỉ lấy phần từ tiếng Anh: "big (to lớn), large" → ["big", "large"]
+export const splitList = s => parseRel(s).map(x => x.word);
+// HTML hiển thị danh sách đồng / trái nghĩa: từ + nghĩa nhỏ bên cạnh
+export const relHTML = (s, cls) => parseRel(s).map(x => `<span class="rel ${cls}">${esc(x.word)}${x.vi ? `<small>${esc(x.vi)}</small>` : ''}</span>`).join('');
 // Gợi ý chính tả: chữ cái đầu mỗi từ + gạch dưới, vd "I like beach" → "I l___ b____"
 export const hintFor = s => String(s || '').trim().split(/\s+/).map(w => w[0] + '_'.repeat(Math.max(0, w.length - 1))).join(' ');
 // Lớp CSS thu nhỏ chữ cho từ/cụm dài
@@ -51,10 +61,17 @@ export const EMOJIS = ['📚', '🏫', '🏠', '🍔', '✈️', '💼', '🏥',
 
 /* Toast */
 let toastTimer;
-export function toast(msg, ms = 2400) {
+/** action (tuỳ chọn): { label, onClick } → hiện thêm một nút trong toast (vd "Hoàn tác") */
+export function toast(msg, ms = 2400, action) {
   const el = $('#toast');
   if (!el) return;
   el.textContent = msg;
+  el.classList.toggle('has-action', !!action);
+  if (action) {
+    const b = document.createElement('button'); b.type = 'button'; b.textContent = action.label;
+    b.addEventListener('click', () => { el.classList.remove('show'); clearTimeout(toastTimer); action.onClick(); });
+    el.appendChild(b);
+  }
   el.classList.add('show');
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => el.classList.remove('show'), ms);

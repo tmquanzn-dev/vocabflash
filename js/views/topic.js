@@ -1,10 +1,11 @@
-import { $, $$, esc, toast, levelBadge, isPhrase, POS_SHORT } from '../utils.js?v=12';
-import { Store } from '../store.js?v=12';
-import { TTS } from '../tts.js?v=12';
-import { setTitle } from '../shell.js?v=12';
-import { confirmModal } from '../modal.js?v=12';
-import { topicForm, wordForm, bulkForm, shareTopicForm } from '../forms.js?v=12';
-import { render, go } from '../router.js?v=12';
+import { $, $$, esc, toast, levelBadge, isPhrase, POS_SHORT, relHTML } from '../utils.js?v=13';
+import { Store } from '../store.js?v=13';
+import { TTS } from '../tts.js?v=13';
+import { setTitle } from '../shell.js?v=13';
+import { confirmModal } from '../modal.js?v=13';
+import { topicForm, wordForm, bulkForm, shareTopicForm } from '../forms.js?v=13';
+import { render, go } from '../router.js?v=13';
+import { deletedToast } from '../undo.js?v=13';
 
 // sel: null = bình thường; Set = đang ở chế độ chọn nhiều từ để xoá
 const st = { q: '', filter: 'all', sort: 'new', kind: 'all', sel: null, topicId: null };
@@ -18,7 +19,7 @@ export function viewTopic(el, { id }) {
   const all = Store.wordsOf(id);
   const nWords = all.filter(w => !isPhrase(w.word)).length, nPhrases = all.length - nWords;
   let list = Store.byKind(all, st.kind);
-  if (st.q) { const q = st.q.toLowerCase(); list = list.filter(w => w.word.toLowerCase().includes(q) || w.meaning.toLowerCase().includes(q) || w.phonetic.toLowerCase().includes(q)); }
+  if (st.q) { const q = st.q.toLowerCase(); list = list.filter(w => w.word.toLowerCase().includes(q) || w.meaning.toLowerCase().includes(q) || w.phonetic.toLowerCase().includes(q) || (w.synonyms || '').toLowerCase().includes(q) || (w.antonyms || '').toLowerCase().includes(q)); }
   if (st.filter === 'new') list = list.filter(w => w.level === 0);
   else if (st.filter === 'learning') list = list.filter(w => w.level > 0 && w.level < 5);
   else if (st.filter === 'mastered') list = list.filter(w => w.level >= 5);
@@ -95,14 +96,14 @@ export function viewTopic(el, { id }) {
           <td><div class="row nowrap" style="gap:6px"><button class="btn-icon sm btn-speak" data-row="speak" title="Phát âm">🔊</button><span class="word">${esc(w.word)}</span> ${w.pos ? `<span class="pos">${POS_SHORT[w.pos] || w.pos}</span>` : ''}</div></td>
           <td class="ipa">${esc(w.phonetic) || '<span class="muted">—</span>'}</td>
           <td>${esc(w.meaning)}</td>
-          <td>${w.example ? `<div class="ex">${esc(w.example)}</div>` : ''}${w.exampleVi ? `<div class="small muted">${esc(w.exampleVi)}</div>` : ''}${w.note ? `<div class="small muted">📌 ${esc(w.note)}</div>` : ''}</td>
+          <td>${w.example ? `<div class="ex">${esc(w.example)}</div>` : ''}${w.exampleVi ? `<div class="small muted">${esc(w.exampleVi)}</div>` : ''}${w.synonyms ? `<div class="small rel-row">≈ ${relHTML(w.synonyms, 'syn')}</div>` : ''}${w.antonyms ? `<div class="small rel-row">≠ ${relHTML(w.antonyms, 'ant')}</div>` : ''}${w.note ? `<div class="small muted">📌 ${esc(w.note)}</div>` : ''}</td>
           <td>${levelBadge(w.level)}${w.correct + w.wrong ? `<div class="small muted">${w.correct}✓ ${w.wrong}✗</div>` : ''}</td>
           <td><div class="actions"><button class="btn-icon sm" data-row="edit" title="Sửa">✏️</button><button class="btn-icon sm" data-row="del" title="Xoá">🗑️</button></div></td>
         </tr>`).join('')}</tbody></table></div>`}`;
 
   $('[data-act="editTopic"]', el).addEventListener('click', () => topicForm(topic));
   $('[data-act="delTopic"]', el).addEventListener('click', async () => {
-    if (await confirmModal('Xoá chủ đề?', `Chủ đề "${topic.name}" và ${all.length} từ vựng bên trong sẽ bị xoá vĩnh viễn.`, 'Xoá chủ đề')) { Store.deleteTopic(id); toast('Đã xoá chủ đề'); go('/'); }
+    if (await confirmModal('Xoá chủ đề?', `Chủ đề "${topic.name}" và ${all.length} từ vựng bên trong sẽ bị xoá vĩnh viễn.`, 'Xoá chủ đề')) { Store.deleteTopic(id); deletedToast(`Đã xoá "${topic.name}"`); go('/'); }
   });
   $$('[data-act="add"]', el).forEach(b => b.addEventListener('click', () => wordForm(id)));
   $$('[data-act="bulk"]', el).forEach(b => b.addEventListener('click', () => bulkForm(id)));
@@ -119,13 +120,13 @@ export function viewTopic(el, { id }) {
   $('[data-act="select"]', el)?.addEventListener('click', () => { st.sel = st.sel ? null : new Set(); viewTopic(el, { id }); });
   $('[data-act="delAll"]', el)?.addEventListener('click', async () => {
     if (await confirmModal('Xoá tất cả từ?', `Toàn bộ ${all.length} từ trong chủ đề "${topic.name}" sẽ bị xoá vĩnh viễn (chủ đề vẫn được giữ lại).`, `Xoá ${all.length} từ`)) {
-      Store.clearTopic(id); st.sel = null; toast(`Đã xoá ${all.length} từ`); render();
+      Store.clearTopic(id); st.sel = null; deletedToast(`Đã xoá ${all.length} từ`); render();
     }
   });
   $('[data-act="delSel"]', el)?.addEventListener('click', async () => {
     const n = st.sel.size; if (!n) return;
     if (await confirmModal('Xoá các từ đã chọn?', `${n} từ đã chọn sẽ bị xoá vĩnh viễn.`, `Xoá ${n} từ`)) {
-      Store.deleteWords([...st.sel]); st.sel = new Set(); toast(`Đã xoá ${n} từ`); render();
+      Store.deleteWords([...st.sel]); st.sel = new Set(); deletedToast(`Đã xoá ${n} từ`); render();
     }
   });
   const syncSelBar = () => { const c = $('#selCount', el); if (c) c.textContent = st.sel.size; const b = $('[data-act="delSel"]', el); if (b) b.disabled = !st.sel.size; const a = $('#selAll', el); if (a) a.checked = list.length > 0 && list.every(w => st.sel.has(w.id)); };
@@ -152,7 +153,7 @@ export function viewTopic(el, { id }) {
       if (b.dataset.row === 'speak') TTS.speakWord(w, b);
       else if (b.dataset.row === 'star') { const on = Store.toggleStar(w.id); b.textContent = on ? '⭐' : '☆'; b.classList.toggle('on', on); b.title = on ? 'Bỏ đánh dấu' : 'Đánh dấu ⭐'; }
       else if (b.dataset.row === 'edit') wordForm(id, w);
-      else if (b.dataset.row === 'del') { if (await confirmModal('Xoá từ?', `Xoá từ "${w.word}" khỏi chủ đề này?`)) { Store.deleteWord(w.id); toast('Đã xoá'); render(); } }
+      else if (b.dataset.row === 'del') { if (await confirmModal('Xoá từ?', `Xoá từ "${w.word}" khỏi chủ đề này?`)) { Store.deleteWord(w.id); deletedToast(`Đã xoá "${w.word}"`); render(); } }
     });
   }
 }

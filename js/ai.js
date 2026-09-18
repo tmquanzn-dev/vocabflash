@@ -1,6 +1,6 @@
-import { fetchTimeout } from './utils.js?v=12';
-import { CONFIG, isCloudEnabled } from './config.js?v=12';
-import { Auth } from './auth.js?v=12';
+import { fetchTimeout } from './utils.js?v=13';
+import { CONFIG, isCloudEnabled } from './config.js?v=13';
+import { Auth } from './auth.js?v=13';
 
 /**
  * AI trích xuất từ vựng: dùng Gemini API (Google AI Studio) với API key của chính người dùng, lưu trên máy này.
@@ -21,6 +21,9 @@ export const AI_LEVELS = [
   { id: 'B2-C1', label: 'B2 – C1 (khó, nâng cao)' },
   { id: 'C1-C2', label: 'C1 – C2 (rất khó, học thuật)' },
 ];
+
+// AI trả mảng [{word:"big", vi:"to lớn"}] hoặc ["big","large"] (hoặc chuỗi) → "big (to lớn), large"
+const joinList = v => (Array.isArray(v) ? v : String(v || '').split(/[,;]/)).map(x => typeof x === 'object' && x ? (x.vi ? `${String(x.word || '').trim()} (${String(x.vi).trim()})` : String(x.word || '').trim()) : String(x).trim()).filter(Boolean).slice(0, 6).join(', ');
 
 export const AI = {
   // Key riêng của người dùng (localStorage) ưu tiên hơn key mặc định trong config.js
@@ -112,6 +115,8 @@ For each item return:
 - "example": the exact sentence (or shortened clause, max 25 words) from the text that contains the word
 - "exampleVi": natural Vietnamese translation of that example
 - "note": short English definition (max 15 words)
+- "synonyms": up to 4 common English synonyms, each {"word": "...", "vi": "short Vietnamese meaning"} ([] if none)
+- "antonyms": up to 3 English antonyms, each {"word": "...", "vi": "short Vietnamese meaning"} ([] if none)
 - "cefr": estimated CEFR level, e.g. "B2", "C1"
 
 Also return "title": a short topic name in English (max 5 words) describing the text.
@@ -127,6 +132,7 @@ ${text}
       word: String(w.word).trim(), phonetic: String(w.phonetic || '').trim(), pos: String(w.pos || '').toLowerCase().trim(),
       meaning: String(w.meaning || w.meaning_vi || '').trim(), example: String(w.example || '').trim(), exampleVi: String(w.exampleVi || w.example_vi || '').trim(),
       note: String(w.note || w.definition || '').trim(), cefr: String(w.cefr || '').toUpperCase().trim(),
+      synonyms: joinList(w.synonyms), antonyms: joinList(w.antonyms),
     })).filter(w => w.meaning);
     if (!words.length) throw new Error('AI không tìm được từ nào phù hợp – thử mức dễ hơn hoặc đoạn văn khác.');
     return { title: String((Array.isArray(out) ? '' : out.title) || '').trim(), words };
@@ -145,6 +151,8 @@ ${text}
 - "meaning": concise Vietnamese meaning; if "context" is given, the meaning *as used in that context*
 - "exampleVi": Vietnamese translation of "context" (empty string if no context)
 - "note": short English definition (max 15 words)
+- "synonyms": up to 4 common English synonyms, each {"word": "...", "vi": "short Vietnamese meaning"} ([] if none)
+- "antonyms": up to 3 English antonyms, each {"word": "...", "vi": "short Vietnamese meaning"} ([] if none)
 Return ONLY a JSON array in the same order as the input.
 
 INPUT:
@@ -156,7 +164,77 @@ ${JSON.stringify(items.map(i => ({ word: i.word, context: (i.context || '').slic
     return items.map((it, i) => { const w = list[i] || list.find(x => x && x.word && x.word.toLowerCase() === it.word.toLowerCase()) || {}; return {
       word: String(w.word || it.word).trim(), phonetic: String(w.phonetic || '').trim(), pos: String(w.pos || '').toLowerCase().trim(),
       meaning: String(w.meaning || '').trim(), exampleVi: String(w.exampleVi || '').trim(), note: String(w.note || '').trim(),
+      synonyms: joinList(w.synonyms), antonyms: joinList(w.antonyms),
     }; });
+  },
+
+  /**
+   * Nghĩa tiếng Việt ngắn cho một danh sách từ (dùng để chú nghĩa đồng / trái nghĩa lấy từ từ điển)
+   * → { [word]: "nghĩa" }
+   */
+  async glossWords(words) {
+    words = [...new Set(words.map(w => String(w).trim().toLowerCase()).filter(Boolean))].slice(0, 20);
+    if (!words.length) return {};
+    if (!this.available) throw new Error('Chưa có Gemini API key.');
+    const out = await this._ask(`Give a very short Vietnamese meaning (1–4 words) for each English word. Return ONLY a JSON object mapping each word to its meaning.\nWORDS: ${JSON.stringify(words)}`);
+    const map = {};
+    Object.entries(out || {}).forEach(([k, v]) => { map[String(k).trim().toLowerCase()] = String(v || '').trim(); });
+    return map;
+  },
+
+  /** Chú nghĩa tiếng Việt cho chuỗi đồng/trái nghĩa "big, large (rộng)" → "big (to lớn), large (rộng)"; lỗi thì trả nguyên chuỗi */
+  async glossRel(...strs) {
+    const { parseRel, formatRel } = await import('./utils.js?v=13');
+    const lists = strs.map(parseRel);
+    const missing = lists.flat().filter(x => !x.vi).map(x => x.word);
+    if (!missing.length || !this.available) return strs;
+    try {
+      const map = await this.glossWords(missing);
+      return lists.map(l => formatRel(l.map(x => x.vi ? x : { ...x, vi: map[x.word.toLowerCase()] || '' })));
+    } catch { return strs; }
+  },
+
+  /**
+   * Sinh bài tập ngữ pháp bằng AI theo chủ đề tự chọn.
+   * tenses: [{ id, name }] · level 1–3 · topic: chủ đề (vd "Công nghệ") · n: số câu · mode: 'mc' | 'fill' | 'mix'
+   * → [{ tense, kind: 'mc'|'fill'|'pick', q, a, alts, opts, x }]
+   */
+  async grammarQuestions({ tenses, level = 1, topic = '', n = 10, mode = 'mix' }) {
+    if (!this.available) throw new Error('Chưa có Gemini API key.');
+    const lvDesc = { 1: 'basic: affirmative sentences, common verbs, clear time signals', 2: 'intermediate: negatives, questions, irregular verbs, hidden signals', 3: 'advanced: complex sentences mixing clauses, tricky cases, "choose the correct sentence" items' }[level];
+    const prompt = `You are an English grammar teacher for Vietnamese learners. Create ${n} exercise items practising these tenses: ${tenses.map(t => `${t.id} = ${t.name}`).join('; ')}.
+Difficulty: ${lvDesc}.
+Theme for the sentences: "${topic || 'everyday life'}" – make sentences natural, realistic and varied (different subjects, contexts, sentence lengths), like a real textbook, not formulaic.
+Item types: "gap" = a sentence with ___ where the verb goes, followed by the base verb in parentheses, e.g. "By 2030, engineers ___ (develop) cars that drive themselves."; ${level >= 3 && mode !== 'fill' ? '"pick" = q is "Câu nào đúng ngữ pháp?" and a / wrong are full sentences (max 30% of items);' : ''}
+For each item return: {"tense": one of ${JSON.stringify(tenses.map(t => t.id))}, "type": "gap"|"pick", "q": "...", "a": "correct answer (only the verb phrase for gap items)", "wrong": ["3 plausible wrong answers – same verb in neighbouring tenses or with agreement errors"], "x": "short Vietnamese explanation (max 30 words) naming the signal words in the sentence and why this tense is used"}
+Spread items across the tenses. Return ONLY a JSON array.`;
+    let out;
+    try { out = await this._ask(prompt, this.model); }
+    catch (e) { if (e.code === 404 && this.model !== this.defaultModel) { this.model = ''; out = await this._ask(prompt, this.defaultModel); } else throw e; }
+    const list = Array.isArray(out) ? out : (out.items || out.questions || []);
+    const ids = new Set(tenses.map(t => t.id));
+    const qs = list.filter(it => it && it.q && it.a).map(it => {
+      const wrong = (Array.isArray(it.wrong) ? it.wrong : []).map(String).filter(w => w && w !== it.a).slice(0, 3);
+      const pick = it.type === 'pick';
+      return { tense: ids.has(it.tense) ? it.tense : tenses[0].id, kind: pick ? 'pick' : 'mc', q: String(it.q).trim(), a: String(it.a).trim(), alts: [], opts: [String(it.a).trim(), ...wrong], x: String(it.x || '').trim(), ai: true };
+    }).filter(q => q.kind === 'pick' || /___/.test(q.q));
+    if (!qs.length) throw new Error('AI không trả về câu hỏi hợp lệ, hãy thử lại.');
+    return qs;
+  },
+
+  /** Giải thích vì sao câu ngữ pháp dùng thì đó (khi người học làm sai) → chuỗi tiếng Việt */
+  async explainGrammar({ q, a, user, tense }) {
+    if (!this.available) throw new Error('Chưa có Gemini API key.');
+    const out = await this._ask(`A Vietnamese learner answered a grammar exercise incorrectly. Explain in Vietnamese, simply and concretely, in 3–5 short bullet points:
+1) which words in the sentence are the signal/clue and what they indicate,
+2) why the correct answer uses the ${tense} tense/form,
+3) why the learner's answer is wrong (what tense/form it is and when that would be used instead),
+4) one extra similar example sentence.
+Exercise: "${q}"
+Correct answer: "${a}"
+Learner's answer: "${user || '(bỏ trống)'}"
+Return ONLY JSON: {"explanation": "markdown-free plain text, use line breaks and the bullet character •"}`);
+    return String(out.explanation || out.text || '').trim();
   },
 
   /**
@@ -170,7 +248,7 @@ ${JSON.stringify(items.map(i => ({ word: i.word, context: (i.context || '').slic
     const prompt = `You are a translator for a Vietnamese learner of English.
 1) Translate the TEXT below into natural, fluent Vietnamese (keep paragraph breaks; do not add comments).
 2) Pick up to 6 useful difficult vocabulary items (CEFR B2 or above; single words, phrasal verbs or collocations; skip names and easy words) that appear in the TEXT.
-Return ONLY JSON: {"translation": "...", "words": [{"word": "dictionary form (keep phrases whole)", "phonetic": "IPA", "pos": "noun|verb|adjective|adverb|phrase|...", "meaning": "concise Vietnamese meaning as used in the text", "note": "short English definition"}]}
+Return ONLY JSON: {"translation": "...", "words": [{"word": "dictionary form (keep phrases whole)", "phonetic": "IPA", "pos": "noun|verb|adjective|adverb|phrase|...", "meaning": "concise Vietnamese meaning as used in the text", "note": "short English definition", "synonyms": [{"word": "synonym", "vi": "nghĩa"}], "antonyms": [{"word": "antonym", "vi": "nghĩa"}]}]}
 TEXT:
 """
 ${text}
@@ -178,6 +256,6 @@ ${text}
     let out;
     try { out = await this._ask(prompt, this.model); }
     catch (e) { if (e.code === 404 && this.model !== this.defaultModel) { this.model = ''; out = await this._ask(prompt, this.defaultModel); } else throw e; }
-    return { translation: String(out.translation || '').trim(), words: (out.words || []).filter(w => w && w.word && w.meaning).map(w => ({ word: String(w.word).trim(), phonetic: String(w.phonetic || '').trim(), pos: String(w.pos || '').toLowerCase().trim(), meaning: String(w.meaning).trim(), note: String(w.note || '').trim() })) };
+    return { translation: String(out.translation || '').trim(), words: (out.words || []).filter(w => w && w.word && w.meaning).map(w => ({ word: String(w.word).trim(), phonetic: String(w.phonetic || '').trim(), pos: String(w.pos || '').toLowerCase().trim(), meaning: String(w.meaning).trim(), note: String(w.note || '').trim(), synonyms: joinList(w.synonyms), antonyms: joinList(w.antonyms) })) };
   },
 };

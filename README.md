@@ -91,12 +91,15 @@ Không làm bước này thì Google login và link trong email sẽ quay về `
 - Gói Free Supabase: 50.000 người dùng/tháng, 500 MB database, 200 kết nối realtime đồng thời. Mỗi người dùng chiếm ~vài chục KB, nên thoải mái cho hàng nghìn người.
 - Email: dùng SMTP riêng (Gmail ~500 email/ngày; Resend 3.000/tháng free; cần nhiều hơn thì Brevo/SES).
 - Hosting tĩnh (Netlify/Vercel/Cloudflare) có CDN toàn cầu, băng thông free 100 GB/tháng – thừa cho web này.
-- Khi sửa code, tăng số phiên bản để người dùng nhận bản mới: tìm & thay toàn bộ `?v=9` → `?v=10` trong `index.html` và thư mục `js/` (mọi import nội bộ đều có `?v=`, nếu chỉ đổi ở `index.html` thì các file con vẫn bị trình duyệt cache).
+- Khi sửa code, tăng số phiên bản để người dùng nhận bản mới: tìm & thay toàn bộ `?v=13` → `?v=14` trong `index.html` và thư mục `js/` (mọi import nội bộ đều có `?v=`, nếu chỉ đổi ở `index.html` thì các file con vẫn bị trình duyệt cache). Service worker (`sw.js`) tự lấy URL mới nhờ `?v=`; muốn xoá sạch cache cũ trên máy người dùng thì đổi thêm hằng `CACHE` trong `sw.js`.
 
 ## Cấu trúc mã nguồn
 
 ```
 index.html            khung trang (public + app)
+manifest.webmanifest  PWA: tên, icon, màu (cài lên màn hình chính)
+sw.js                 service worker: cache css/js/img để mở được khi mất mạng
+img/make-pwa-icons.py sinh lại icon PWA (icon-192/512, maskable, apple-touch-icon)
 start.bat / serve.py  chạy server local (no-cache) trên Windows / mọi HĐH
 css/
   base.css            token màu (sáng/tối), nút, form, card, modal, toast
@@ -112,13 +115,15 @@ js/
   store.js            dữ liệu theo tài khoản, SRS, thống kê, đồng bộ cloud
   tts.js              phát âm (Web Speech API + audio từ điển)
   dictionary.js       tra phiên âm/định nghĩa (dictionaryapi.dev + Datamuse, ARPABET→IPA)
-  modal.js  forms.js  hộp thoại; form chủ đề / từ / nhập nhanh / chia sẻ (+ đăng lên chợ) / thư viện
+  modal.js  forms.js  hộp thoại; form chủ đề / từ (báo trùng, đồng/trái nghĩa) / nhập nhanh / chia sẻ (+ đăng lên chợ) / thư viện
+  undo.js             toast "Đã xoá – ↩ Hoàn tác" (khôi phục lần xoá gần nhất từ Store._trash)
   library.js          8 bộ chủ đề mẫu
   community.js        Chợ chủ đề: đăng / gỡ / tìm / clone bộ từ (bảng public_topics)
   ai.js               AI trích xuất từ vựng / điền nghĩa (Gemini API) + đọc link qua r.jina.ai
   inbox.js            Hộp thư từ: tải + realtime bảng inbox_words (từ do extension gửi)
   grammar/
     tenses.js         lý thuyết 13 thì: công thức, cách dùng, dấu hiệu, ví dụ, lưu ý
+    timeline.js       vẽ trục thời gian SVG cho từng thì (dữ liệu vị trí theo % trên trục)
     bank.js           ~240 câu bài tập soạn tay, 3 mức, kèm giải thích
     gen.js            bộ sinh câu hỏi tự động (chia động từ đúng cho 13 thì, đáp án nhiễu từ thì lân cận)
   speech.js           luyện nói (Web Speech Recognition)
@@ -136,7 +141,11 @@ supabase/functions/gemini/index.ts   Edge Function proxy Gemini (key bí mật �
 ## Chức năng
 
 - **Trang giới thiệu** + đăng nhập / đăng ký / khách; hồ sơ người dùng (đổi tên, thống kê, đăng xuất)
-- **Chủ đề tự tạo** với icon, mô tả · **Từ vựng & cụm từ** (`look forward to`, `I like the beach`…): IPA, loại từ, nghĩa, ví dụ EN/VI, ghi chú – cụm từ dùng được mọi chức năng như từ đơn (tra phiên âm ghép từng từ, flashcard, quiz, chính tả không phân biệt hoa/thường & dấu câu)
+- **Chủ đề tự tạo** với icon, mô tả · **Từ vựng & cụm từ** (`look forward to`, `I like the beach`…): IPA, loại từ, nghĩa, ví dụ EN/VI, **≈ đồng nghĩa / ≠ trái nghĩa**, ghi chú – cụm từ dùng được mọi chức năng như từ đơn (tra phiên âm ghép từng từ, flashcard, quiz, chính tả không phân biệt hoa/thường & dấu câu)
+- **Đồng nghĩa / trái nghĩa** kèm nghĩa tiếng Việt từng từ, định dạng `big (to lớn), large (rộng)`: ô riêng trong form từ; nút 🔎 Tra lấy từ dictionaryapi.dev + Datamuse (`rel_syn`/`rel_ant`) rồi nhờ AI chú nghĩa (nút **✨ Nghĩa** để chú nghĩa lại bất kỳ lúc nào); AI trích xuất / AI điền nghĩa / extension trả về sẵn cả nghĩa; hiện dạng chip "từ + nghĩa nhỏ" trong bảng từ, mặt nghĩa của flashcard, Hộp thư từ; có dạng **quiz "Đồng / trái nghĩa"** (chọn từ đồng nghĩa hoặc trái nghĩa, nhiễu lấy từ các từ khác). Nhập nhanh / chia sẻ dùng thêm 2 cột cuối: `từ | phiên âm | nghĩa | ví dụ | dịch ví dụ | đồng nghĩa | trái nghĩa`
+- **Chống thêm trùng**: form từ báo ngay "⚠️ Từ này đã có trong: <chủ đề>" khi gõ (không phân biệt hoa/thường, dấu câu) và hỏi lại khi lưu; Nhập nhanh / AI trích xuất / Hộp thư từ / Dịch đoạn văn tự bỏ qua từ đã có (báo số bỏ qua). Thư viện mẫu và Clone từ chợ vẫn thêm nguyên bộ.
+- **↩ Hoàn tác xoá**: xoá từ, xoá nhiều từ, xoá tất cả từ, xoá chủ đề (kể cả xoá nhiều / tất cả chủ đề) đều hiện toast 7 giây có nút Hoàn tác – khôi phục nguyên tiến độ. Chỉ nhớ lần xoá gần nhất và mất khi tải lại trang.
+- **📲 PWA**: Cài đặt → "Cài lên điện thoại / máy tính" (Chrome/Edge hiện nút cài; iOS: Chia sẻ → Thêm vào MH chính). Mở được khi mất mạng (service worker cache css/js/img, index.html luôn lấy mạng trước), số từ đến hạn hiện trên icon app (Badging API). Cần chạy qua **https** (hoặc localhost).
 - **🔎 Tra tự động** phiên âm / loại từ / định nghĩa / ví dụ / audio người thật · **📋 Nhập nhanh** nhiều dòng
 - **🎴 Flashcard** lật 3D, Anh↔Việt, xáo trộn, tự phát âm, phím tắt, **⭐ đánh dấu từ**, **🎤 luyện nói** (nhận dạng giọng nói, chấm % giống)
 - **Học tất cả chủ đề / từ đã đánh dấu**, **🎮 trò chơi nối từ – nghĩa** (tính giờ, kỷ lục), **📚 thư viện 8 chủ đề mẫu** (80 từ có IPA + ví dụ), **📤 chia sẻ chủ đề** (copy/tải .txt → bạn bè dán vào Nhập nhanh)
@@ -153,10 +162,12 @@ supabase/functions/gemini/index.ts   Edge Function proxy Gemini (key bí mật �
 
 ### 📐 Ngữ pháp – 13 thì cơ bản (`#/grammar`)
 - Hiện tại đơn / tiếp diễn / hoàn thành / hoàn thành tiếp diễn · Quá khứ (4 thì) · Tương lai (4 thì) · Tương lai gần (be going to)
-- Mỗi thì: **công thức** (khẳng định / phủ định / nghi vấn), **cách dùng** kèm ví dụ, **dấu hiệu nhận biết**, ví dụ thêm có 🔊, **lưu ý & lỗi thường gặp**
+- Mỗi thì: **trục thời gian** (SVG sinh từ `grammar/timeline.js` – quá khứ / bây giờ / tương lai, chấm = thời điểm, thanh = kéo dài, nét đứt = nhấn mạnh quá trình), **công thức** 3 khối màu (khẳng định / phủ định / nghi vấn, mỗi khối kèm câu mẫu 🔊), **cách dùng** dạng callout đánh số – bấm câu ví dụ để hiện nghĩa, **dấu hiệu nhận biết**, ví dụ thêm dạng **thẻ lật 3D** (EN → VI), **lưu ý & lỗi thường gặp** dạng callout vàng
 - **Bài tập 3 mức**: 🌱 Cơ bản · 🔥 Khó · 💀 Siêu khó; dạng trắc nghiệm / tự gõ / trộn; 10–50 câu mỗi lượt
 - Ngân hàng câu = **~240 câu soạn tay** (câu phức, phân biệt thì, "chọn câu đúng", có giải thích) + **bộ sinh tự động** (chủ ngữ × ~60 động từ × dấu hiệu → hàng nghìn tổ hợp, đáp án nhiễu là cùng động từ ở các thì lân cận / chia sai ngôi) → mỗi lượt làm được xáo trộn và sinh mới, không lần nào giống lần nào
 - **🎲 Luyện tổng hợp** trộn cả 13 thì, kết quả thống kê theo từng thì; tiến độ (tốt nhất / lần cuối / số lượt) lưu theo tài khoản và đồng bộ cloud; mỗi câu trả lời tính là 1 lượt ôn cho mục tiêu ngày & bảng xếp hạng
+- **✨ Sinh bài tập bằng AI** (tab Bài tập): chọn chủ đề (chip sẵn: Công nghệ, Du lịch… hoặc gõ tự do), mức, 5–15 câu → Gemini viết câu tự nhiên theo chủ đề kèm giải thích tiếng Việt từng câu (`AI.grammarQuestions`); làm bài y như bộ thường, có nút "Sinh bộ AI mới" ở màn kết quả. Cần AI (Edge Function hoặc key riêng).
+- **✨ Nhờ AI giải thích kỹ hơn**: khi trả lời sai, bấm nút trong ô phản hồi → Gemini nêu dấu hiệu trong câu, vì sao dùng thì đó, vì sao đáp án của bạn sai, kèm ví dụ tương tự (`AI.explainGrammar`)
 
 ### 🌍 Chợ chủ đề (`#/explore`)
 - Trong chủ đề → **📤 Chia sẻ** → **🌍 Đăng lên chợ**: bộ từ (không kèm tiến độ cá nhân) được lưu vào bảng `public_topics`; bấm lại để cập nhật, hoặc **Gỡ**

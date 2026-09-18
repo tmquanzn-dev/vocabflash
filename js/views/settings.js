@@ -1,10 +1,10 @@
-import { $, esc, toast } from '../utils.js?v=12';
-import { Store } from '../store.js?v=12';
-import { Auth } from '../auth.js?v=12';
-import { TTS } from '../tts.js?v=12';
-import { setTitle, applyTheme } from '../shell.js?v=12';
-import { openModal, closeModal, confirmModal } from '../modal.js?v=12';
-import { render } from '../router.js?v=12';
+import { $, esc, toast } from '../utils.js?v=13';
+import { Store } from '../store.js?v=13';
+import { Auth } from '../auth.js?v=13';
+import { TTS } from '../tts.js?v=13';
+import { setTitle, applyTheme } from '../shell.js?v=13';
+import { openModal, closeModal, confirmModal } from '../modal.js?v=13';
+import { render } from '../router.js?v=13';
 
 /* Mã bookmarklet: lấy chữ đang bôi đen + câu chứa nó, mở VocabFlash ở #/add?... */
 function bookmarklet() {
@@ -40,6 +40,7 @@ export function viewSettings(el) {
           <div class="field"><label>Giao diện</label><select id="sTheme"><option value="light" ${s.theme === 'light' ? 'selected' : ''}>Sáng</option><option value="dark" ${s.theme === 'dark' ? 'selected' : ''}>Tối</option></select></div>
         </div>
       </div>
+      <div class="card" id="sPwa">${pwaCard()}</div>
       <div class="card">
         <h3>🏆 Bảng xếp hạng</h3>
         <label class="check"><input type="checkbox" id="sLb" ${s.showOnLeaderboard !== false ? 'checked' : ''}> Hiển thị tên tôi trên bảng xếp hạng (số lượt ôn mỗi ngày / tuần)</label>
@@ -81,6 +82,7 @@ export function viewSettings(el) {
     </div>`;
 
   const save = () => Store.save();
+  bindInstall($('#sPwa', el));
   $('#sVoice', el).addEventListener('change', e => { s.voice = e.target.value; save(); });
   $('#sRate', el).addEventListener('input', e => { s.rate = parseFloat(e.target.value); $('#sRateV', el).textContent = s.rate; save(); });
   $('#sAuto', el).addEventListener('change', e => { s.autoSpeak = e.target.checked; save(); });
@@ -126,5 +128,29 @@ export function viewSettings(el) {
     if (await confirmModal('Xoá toàn bộ dữ liệu?', 'Tất cả chủ đề, từ vựng và tiến độ học sẽ bị xoá. Hãy xuất file sao lưu trước nếu cần.', 'Xoá tất cả')) {
       Store.clearAll(); toast('Đã xoá toàn bộ dữ liệu'); render();
     }
+  });
+}
+
+
+/* ---------- PWA: cài lên màn hình chính ---------- */
+const isStandalone = () => window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+const isIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent);
+function pwaCard() {
+  if (isStandalone()) return `<h3>📲 Ứng dụng</h3><p class="muted small">Bạn đang dùng VocabFlash ở dạng ứng dụng đã cài. Dữ liệu vẫn đồng bộ như trên web; mất mạng vẫn mở được và học tiếp, có mạng sẽ tự đẩy lên cloud.</p>`;
+  const canPrompt = !!window.vfInstallPrompt;
+  return `<h3>📲 Cài lên điện thoại / máy tính</h3>
+    <p class="muted small">Cài VocabFlash như một ứng dụng: có icon riêng trên màn hình chính, mở toàn màn hình, <b>dùng được khi mất mạng</b>, số từ đến hạn hiện trên icon.</p>
+    ${canPrompt ? `<button class="btn btn-primary" id="sInstall">📲 Cài đặt ngay</button>`
+    : isIOS() ? `<p class="small"><b>iPhone / iPad (Safari):</b> bấm nút <b>Chia sẻ</b> <span class="kbd">⬆</span> ở thanh dưới → chọn <b>Thêm vào MH chính</b> (Add to Home Screen) → <b>Thêm</b>.</p>`
+    : `<p class="small muted"><b>Chrome / Edge:</b> bấm biểu tượng <b>cài đặt</b> ở cuối thanh địa chỉ (hoặc menu ⋮ → <i>Cài đặt ứng dụng</i> / <i>Thêm vào màn hình chính</i>). Nút cài tự động chỉ hiện khi web chạy qua https và chưa được cài.</p>`}`;
+}
+document.addEventListener('vf-installable', () => { const c = document.getElementById('sPwa'); if (c) { c.innerHTML = pwaCard(); bindInstall(c); } });
+function bindInstall(c) {
+  c.querySelector('#sInstall')?.addEventListener('click', async () => {
+    const p = window.vfInstallPrompt; if (!p) return;
+    p.prompt();
+    const { outcome } = await p.userChoice;
+    if (outcome === 'accepted') window.vfInstallPrompt = null;
+    c.innerHTML = pwaCard(); bindInstall(c);
   });
 }

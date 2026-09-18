@@ -1,6 +1,6 @@
-import { uid, INTERVALS, MAX_LEVEL, DAY, todayKey, weekKey, debounce, toast, isPhrase } from './utils.js?v=12';
-import { Auth } from './auth.js?v=12';
-import { CONFIG } from './config.js?v=12';
+import { uid, INTERVALS, MAX_LEVEL, DAY, todayKey, weekKey, debounce, toast, isPhrase, wordKey } from './utils.js?v=13';
+import { Auth } from './auth.js?v=13';
+import { CONFIG } from './config.js?v=13';
 
 /**
  * Kho dữ liệu của người dùng đang đăng nhập.
@@ -16,6 +16,7 @@ export function makeWord(topicId, w) {
     word: (w.word || '').trim(), phonetic: (w.phonetic || '').trim(), pos: w.pos || '',
     meaning: (w.meaning || '').trim(), example: (w.example || '').trim(), exampleVi: (w.exampleVi || '').trim(),
     note: (w.note || '').trim(), audio: w.audio || '',
+    synonyms: (w.synonyms || '').trim(), antonyms: (w.antonyms || '').trim(), // "big, large" – cách nhau bằng dấu phẩy
     star: !!w.star,
     level: 0, nextReview: 0, lastReview: 0, correct: 0, wrong: 0, createdAt: Date.now(),
   };
@@ -214,7 +215,24 @@ export const Store = {
   addTopic(t) { const topic = { id: uid(), name: t.name.trim(), icon: t.icon || '📚', desc: (t.desc || '').trim(), createdAt: Date.now() }; this.data.topics.push(topic); this.save(); return topic; },
   updateTopic(id, patch) { Object.assign(this.topic(id), patch); this.save(); },
   deleteTopic(id) { this.deleteTopics([id]); },
-  deleteTopics(ids) { const s = new Set(ids); this.data.topics = this.data.topics.filter(t => !s.has(t.id)); this.data.words = this.data.words.filter(w => !s.has(w.topicId)); this.save(); },
+  deleteTopics(ids) {
+    const s = new Set(ids);
+    this._stash(this.data.topics.filter(t => s.has(t.id)), this.data.words.filter(w => s.has(w.topicId)));
+    this.data.topics = this.data.topics.filter(t => !s.has(t.id)); this.data.words = this.data.words.filter(w => !s.has(w.topicId)); this.save();
+  },
+  /* ---------- hoàn tác xoá: giữ lại lần xoá gần nhất trong bộ nhớ (mất khi tải lại trang) ---------- */
+  _trash: null,
+  _stash(topics, words) { this._trash = { topics, words, at: Date.now() }; },
+  get canUndo() { return !!this._trash; },
+  /** Khôi phục chủ đề / từ của lần xoá gần nhất → { topics, words } hoặc null */
+  undoDelete() {
+    const t = this._trash; if (!t) return null; this._trash = null;
+    const haveT = new Set(this.data.topics.map(x => x.id)), haveW = new Set(this.data.words.map(x => x.id));
+    t.topics.forEach(x => { if (!haveT.has(x.id)) this.data.topics.push(x); });
+    t.words.forEach(x => { if (!haveW.has(x.id) && this.topic(x.topicId)) this.data.words.push(x); });
+    this.save();
+    return t;
+  },
   topicProgress(topicId) { const ws = this.wordsOf(topicId); return ws.length ? Math.round(ws.filter(w => w.level >= 3).length / ws.length * 100) : 0; },
 
   /* ---------- từ vựng ---------- */
@@ -222,15 +240,32 @@ export const Store = {
   word(id) { return this.data.words.find(w => w.id === id); },
   wordsOf(topicId) { return this.data.words.filter(w => w.topicId === topicId); },
   addWord(topicId, w) { const word = makeWord(topicId, w); this.data.words.push(word); this.save(); return word; },
+  /** Các từ đã có trùng với `text` (không phân biệt hoa/thường, dấu câu); exceptId: bỏ qua chính từ đang sửa */
+  findDuplicates(text, exceptId) { const k = wordKey(text); return k ? this.data.words.filter(w => w.id !== exceptId && wordKey(w.word) === k) : []; },
+  /** Thêm nhiều từ một lượt, bỏ qua từ đã có trong tài khoản (và trùng nhau trong chính danh sách) → { added, skipped } */
+  addWords(topicId, items, { skipDup = true } = {}) {
+    const seen = new Set(skipDup ? this.data.words.map(w => wordKey(w.word)) : []);
+    const added = [], skipped = [];
+    for (const it of items) {
+      const k = wordKey(it.word);
+      if (!k) continue;
+      if (skipDup && seen.has(k)) { skipped.push(it); continue; }
+      seen.add(k); added.push(makeWord(topicId, it));
+    }
+    if (added.length) { this.data.words.push(...added); this.save(); }
+    return { added, skipped };
+  },
   updateWord(id, patch) { Object.assign(this.word(id), patch); this.save(); },
   deleteWord(id) { this.deleteWords([id]); },
-  deleteWords(ids) { const s = new Set(ids); this.data.words = this.data.words.filter(w => !s.has(w.id)); this.save(); },
-  clearTopic(topicId) { this.data.words = this.data.words.filter(w => w.topicId !== topicId); this.save(); },
+  deleteWords(ids) { const s = new Set(ids); this._stash([], this.data.words.filter(w => s.has(w.id))); this.data.words = this.data.words.filter(w => !s.has(w.id)); this.save(); },
+  clearTopic(topicId) { this._stash([], this.data.words.filter(w => w.topicId === topicId)); this.data.words = this.data.words.filter(w => w.topicId !== topicId); this.save(); },
   toggleStar(id) { const w = this.word(id); w.star = !w.star; this.save(); return w.star; },
   starredWords() { return this.data.words.filter(w => w.star); },
   // Lọc theo loại: 'words' (từ đơn) | 'phrases' (cụm từ) | khác → tất cả
   byKind(list, kind) { return kind === 'words' ? list.filter(w => !isPhrase(w.word)) : kind === 'phrases' ? list.filter(w => isPhrase(w.word)) : list; },
   // Từ có câu ví dụ chứa chính từ đó → dùng được cho bài "điền vào chỗ trống"
+  // Từ có đồng nghĩa hoặc trái nghĩa → dùng được cho quiz "đồng / trái nghĩa"
+  synWords(list = this.data.words) { return list.filter(w => w.synonyms || w.antonyms); },
   clozeWords(list = this.data.words) { return list.filter(w => w.example && clozeRegex(w.word).test(w.example)); },
   dueWords() { const now = Date.now(); return this.data.words.filter(w => w.lastReview && w.nextReview <= now); },
   hardWords(n = 5) { return this.data.words.filter(w => w.wrong > 0).sort((a, b) => (b.wrong - b.correct) - (a.wrong - a.correct) || b.wrong - a.wrong).slice(0, n); },

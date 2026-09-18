@@ -1,12 +1,12 @@
-import { $, $$, esc, toast, isPhrase, POS_LIST } from '../utils.js?v=12';
-import { Store } from '../store.js?v=12';
-import { Auth } from '../auth.js?v=12';
-import { setTitle, renderSidebar } from '../shell.js?v=12';
-import { confirmModal } from '../modal.js?v=12';
-import { Inbox } from '../inbox.js?v=12';
-import { AI } from '../ai.js?v=12';
-import { lookupWord } from '../dictionary.js?v=12';
-import { go } from '../router.js?v=12';
+import { $, $$, esc, toast, isPhrase, POS_LIST, relHTML } from '../utils.js?v=13';
+import { Store } from '../store.js?v=13';
+import { Auth } from '../auth.js?v=13';
+import { setTitle, renderSidebar } from '../shell.js?v=13';
+import { confirmModal } from '../modal.js?v=13';
+import { Inbox } from '../inbox.js?v=13';
+import { AI } from '../ai.js?v=13';
+import { lookupWord } from '../dictionary.js?v=13';
+import { go } from '../router.js?v=13';
 
 const INBOX_TOPIC = '📥 Từ extension';
 // Bản nháp nghĩa/phiên âm đã điền cho từng dòng inbox (giữ khi vẽ lại)
@@ -30,11 +30,11 @@ export function viewInbox(el) {
           <div class="row"><button class="btn btn-sm" data-act="ai" title="Dùng Gemini điền phiên âm, loại từ, nghĩa theo ngữ cảnh">✨ AI điền nghĩa tất cả</button><button class="btn btn-sm" data-act="dict" title="Tra từ điển lấy phiên âm & audio">🔎 Tra từ điển</button></div>
         </div>
         <div class="table-wrap"><table style="min-width:720px"><thead><tr><th style="width:36px"><input type="checkbox" id="ibAll" checked></th><th>Từ</th><th>Phiên âm</th><th>Nghĩa tiếng Việt *</th><th>Ngữ cảnh</th><th style="width:40px"></th></tr></thead>
-          <tbody>${items.map(it => { const d = drafts[it.id] || (drafts[it.id] = { word: it.word, phonetic: it.phonetic || '', pos: it.pos || '', meaning: it.meaning || '', exampleVi: it.example_vi || '', note: it.note || '', audio: '' }); return `<tr data-id="${it.id}">
+          <tbody>${items.map(it => { const d = drafts[it.id] || (drafts[it.id] = { word: it.word, phonetic: it.phonetic || '', pos: it.pos || '', meaning: it.meaning || '', exampleVi: it.example_vi || '', note: it.note || '', synonyms: '', antonyms: '', audio: '' }); const dupOf = Store.findDuplicates(d.word).map(x => Store.topic(x.topicId)).filter(Boolean)[0]; return `<tr data-id="${it.id}">
             <td><input type="checkbox" class="sel" checked></td>
-            <td><input class="input ib-word" value="${esc(d.word)}" style="min-width:140px">${d.pos ? `<div class="small muted">${esc(d.pos)}</div>` : ''}</td>
+            <td><input class="input ib-word" value="${esc(d.word)}" style="min-width:140px">${d.pos ? `<div class="small muted">${esc(d.pos)}</div>` : ''}${dupOf ? `<div class="small" style="color:var(--warn)">⚠️ đã có ở ${dupOf.icon} ${esc(dupOf.name)}</div>` : ''}</td>
             <td><input class="input ib-phon ipa" value="${esc(d.phonetic)}" placeholder="/…/" style="min-width:120px">${d.audio ? '<div class="small muted">🎧 có audio</div>' : ''}</td>
-            <td><input class="input ib-mean" value="${esc(d.meaning)}" placeholder="Nhập nghĩa hoặc bấm ✨ AI" style="min-width:180px">${d.note ? `<div class="small muted">${esc(d.note)}</div>` : ''}</td>
+            <td><input class="input ib-mean" value="${esc(d.meaning)}" placeholder="Nhập nghĩa hoặc bấm ✨ AI" style="min-width:180px">${d.note ? `<div class="small muted">${esc(d.note)}</div>` : ''}${d.synonyms ? `<div class="small rel-row">≈ ${relHTML(d.synonyms, 'syn')}</div>` : ''}${d.antonyms ? `<div class="small rel-row">≠ ${relHTML(d.antonyms, 'ant')}</div>` : ''}</td>
             <td class="small">${it.context ? `<div class="ex">${esc(it.context)}</div>` : ''}${d.exampleVi ? `<div class="muted">${esc(d.exampleVi)}</div>` : ''}${it.source_url ? `<a class="muted" href="${esc(it.source_url)}" target="_blank" rel="noopener" title="${esc(it.source_title)}">🔗 ${esc((it.source_title || it.source_url).slice(0, 40))}</a>` : ''}<div class="muted">${new Date(it.created_at).toLocaleString('vi-VN')}</div></td>
             <td><button class="btn-icon sm" data-act="del" title="Bỏ từ này">🗑️</button></td>
           </tr>`; }).join('')}</tbody></table></div>
@@ -67,14 +67,15 @@ export function viewInbox(el) {
         b.disabled = true; b.textContent = '⏳ AI đang điền...';
         try {
           const out = await AI.defineWords(list.map(r => ({ word: drafts[r.id].word, context: r.item.context })));
-          out.forEach((w, i) => { const d = drafts[list[i].id]; d.word = w.word || d.word; if (w.phonetic) d.phonetic = w.phonetic; d.pos = w.pos || d.pos; if (w.meaning) d.meaning = w.meaning; d.exampleVi = w.exampleVi || d.exampleVi; d.note = w.note || d.note; });
+          out.forEach((w, i) => { const d = drafts[list[i].id]; d.word = w.word || d.word; if (w.phonetic) d.phonetic = w.phonetic; d.pos = w.pos || d.pos; if (w.meaning) d.meaning = w.meaning; d.exampleVi = w.exampleVi || d.exampleVi; d.note = w.note || d.note; d.synonyms = w.synonyms || d.synonyms; d.antonyms = w.antonyms || d.antonyms; });
           toast(`AI đã điền ${out.length} từ`); draw();
         } catch (err) { toast('Lỗi AI: ' + err.message, 5000); b.disabled = false; b.textContent = '✨ AI điền nghĩa tất cả'; }
       }
       else if (a === 'dict') {
         const list = rows().filter(r => r.sel); if (!list.length) { toast('Chưa chọn từ nào'); return; }
         b.disabled = true; let i = 0;
-        for (const r of list) { i++; b.textContent = `⏳ Tra ${i}/${list.length}...`; const d = drafts[r.id]; try { const x = await lookupWord(d.word); if (x.phonetic) d.phonetic = x.phonetic; if (x.audio) d.audio = x.audio; if (!d.pos && x.pos) d.pos = x.pos; if (!d.note && x.definition) d.note = 'EN: ' + x.definition; } catch { /* bỏ qua */ } }
+        for (const r of list) { i++; b.textContent = `⏳ Tra ${i}/${list.length}...`; const d = drafts[r.id]; try { const x = await lookupWord(d.word); if (x.phonetic) d.phonetic = x.phonetic; if (x.audio) d.audio = x.audio; if (!d.pos && x.pos) d.pos = x.pos; if (!d.note && x.definition) d.note = 'EN: ' + x.definition; if (!d.synonyms && x.synonyms?.length) d.synonyms = x.synonyms.join(', '); if (!d.antonyms && x.antonyms?.length) d.antonyms = x.antonyms.join(', '); } catch { /* bỏ qua */ } }
+        if (AI.available) { b.textContent = '⏳ AI chú nghĩa...'; for (const r of list) { const d = drafts[r.id]; if (d.synonyms || d.antonyms) { const [s, a] = await AI.glossRel(d.synonyms, d.antonyms); d.synonyms = s; d.antonyms = a; } } }
         toast('Đã tra xong'); draw();
       }
       else if (a === 'add') {
@@ -83,10 +84,10 @@ export function viewInbox(el) {
         if (missing.length) { toast(`${missing.length} từ chưa có nghĩa – hãy điền hoặc bấm ✨ AI`, 4000); $('.ib-mean', missing[0].tr).focus(); return; }
         let topicId = $('#ibTopic', el).value;
         if (topicId === '__inbox__') { const t = Store.topics().find(x => x.name === INBOX_TOPIC) || Store.addTopic({ name: INBOX_TOPIC, icon: '📥', desc: 'Từ gửi từ extension Chrome' }); topicId = t.id; }
-        list.forEach(r => { const d = drafts[r.id]; const word = d.word.trim().replace(/\s+/g, ' '); Store.addWord(topicId, { word, phonetic: d.phonetic, pos: POS_LIST.includes(d.pos) ? d.pos : (isPhrase(word) ? 'phrase' : ''), meaning: d.meaning, example: (r.item.context || '').slice(0, 300), exampleVi: d.exampleVi, note: d.note, audio: d.audio }); });
+        const { added, skipped } = Store.addWords(topicId, list.map(r => { const d = drafts[r.id]; const word = d.word.trim().replace(/\s+/g, ' '); return { word, phonetic: d.phonetic, pos: POS_LIST.includes(d.pos) ? d.pos : (isPhrase(word) ? 'phrase' : ''), meaning: d.meaning, example: (r.item.context || '').slice(0, 300), exampleVi: d.exampleVi, note: d.note, synonyms: d.synonyms, antonyms: d.antonyms, audio: d.audio }; }));
         try { await Inbox.remove(list.map(r => r.id)); } catch (err) { toast('Đã thêm từ nhưng chưa xoá được khỏi hộp thư: ' + err.message); }
         list.forEach(r => delete drafts[r.id]);
-        renderSidebar(); toast(`Đã thêm ${list.length} từ vào chủ đề`);
+        renderSidebar(); toast(added.length ? `Đã thêm ${added.length} từ vào chủ đề${skipped.length ? ` · bỏ qua ${skipped.length} từ đã có` : ''}` : `${skipped.length} từ đều đã có trong tài khoản – không thêm lại`, 4000);
         if (!Inbox.items.length) go('/topic/' + topicId); else draw();
       }
     };

@@ -1,11 +1,13 @@
-import { $, $$, esc, toast, isPhrase, EMOJIS, POS_LIST, POS_SHORT } from './utils.js?v=12';
-import { openModal, closeModal, confirmModal } from './modal.js?v=12';
-import { Store } from './store.js?v=12';
-import { TTS } from './tts.js?v=12';
-import { lookupWord } from './dictionary.js?v=12';
-import { render, go } from './router.js?v=12';
-import { LIBRARY, packToWords } from './library.js?v=12';
-import { Community } from './community.js?v=12';
+import { $, $$, esc, toast, isPhrase, debounce, EMOJIS, POS_LIST, POS_SHORT } from './utils.js?v=13';
+import { openModal, closeModal, confirmModal } from './modal.js?v=13';
+import { Store } from './store.js?v=13';
+import { TTS } from './tts.js?v=13';
+import { lookupWord } from './dictionary.js?v=13';
+import { render, go } from './router.js?v=13';
+import { LIBRARY, packToWords } from './library.js?v=13';
+import { Community } from './community.js?v=13';
+import { deletedToast } from './undo.js?v=13';
+import { AI } from './ai.js?v=13';
 
 /* ---------- Form chủ đề ---------- */
 export function topicForm(topic) {
@@ -41,7 +43,7 @@ export function topicForm(topic) {
     if (isEdit) $('#tDelete', root).addEventListener('click', async () => {
       const n = Store.wordsOf(topic.id).length;
       if (await confirmModal('Xoá chủ đề?', `Chủ đề "${topic.name}" và ${n} từ vựng bên trong sẽ bị xoá vĩnh viễn.`)) {
-        Store.deleteTopic(topic.id); toast('Đã xoá chủ đề'); go('/');
+        Store.deleteTopic(topic.id); deletedToast(`Đã xoá "${topic.name}"`); go('/');
       }
     });
   });
@@ -50,7 +52,7 @@ export function topicForm(topic) {
 /* ---------- Form từ vựng ---------- */
 export function wordForm(topicId, word, preset = {}) {
   const isEdit = !!word;
-  const w = word || { word: '', phonetic: '', pos: '', meaning: '', example: '', exampleVi: '', note: '', audio: '', ...preset };
+  const w = word || { word: '', phonetic: '', pos: '', meaning: '', example: '', exampleVi: '', note: '', audio: '', synonyms: '', antonyms: '', ...preset };
   openModal(`
     <h2>${isEdit ? 'Sửa từ vựng' : 'Thêm từ vựng'}</h2>
     <div class="form-grid">
@@ -59,6 +61,7 @@ export function wordForm(topicId, word, preset = {}) {
           <input id="wWord" value="${esc(w.word)}" placeholder="apple  /  I like the beach" style="flex:1">
           <button class="btn-icon btn-speak" id="wSpeak" title="Nghe thử" type="button">🔊</button>
         </div>
+        <span class="hint dup-hint" id="wDup"></span>
       </div>
       <div class="field"><label>Phiên âm (IPA)</label>
         <div class="row nowrap">
@@ -72,7 +75,9 @@ export function wordForm(topicId, word, preset = {}) {
       <div class="field"><label>Nghĩa tiếng Việt *</label><input id="wMean" value="${esc(w.meaning)}" placeholder="quả táo  /  tôi thích bãi biển"></div>
       <div class="field full"><label>Câu ví dụ (EN)</label><input id="wEx" value="${esc(w.example)}" placeholder="I eat an apple every day."></div>
       <div class="field full"><label>Dịch câu ví dụ (VI)</label><input id="wExVi" value="${esc(w.exampleVi)}" placeholder="Tôi ăn một quả táo mỗi ngày."></div>
-      <div class="field full"><label>Ghi chú / định nghĩa tiếng Anh</label><textarea id="wNote" placeholder="Ghi chú thêm, từ đồng nghĩa, collocations...">${esc(w.note)}</textarea></div>
+      <div class="field"><label>≈ Đồng nghĩa</label><input id="wSyn" value="${esc(w.synonyms || '')}" placeholder="big (to lớn), large (rộng)"></div>
+      <div class="field"><label>≠ Trái nghĩa</label><div class="row nowrap"><input id="wAnt" value="${esc(w.antonyms || '')}" placeholder="small (nhỏ)" style="flex:1">${AI.available ? '<button class="btn btn-sm" id="wGloss" type="button" title="AI điền nghĩa tiếng Việt cho các từ đồng / trái nghĩa chưa có nghĩa">✨ Nghĩa</button>' : ''}</div><span class="hint">Nghĩa tiếng Việt để trong ngoặc sau mỗi từ, cách nhau bằng dấu phẩy.</span></div>
+      <div class="field full"><label>Ghi chú / định nghĩa tiếng Anh</label><textarea id="wNote" placeholder="Ghi chú thêm, collocations...">${esc(w.note)}</textarea></div>
       <div class="field full"><span class="hint" id="wAudioHint">${w.audio ? '🎧 Từ này có audio phát âm từ từ điển.' : ''}</span></div>
     </div>
     <div class="modal-actions">
@@ -82,7 +87,15 @@ export function wordForm(topicId, word, preset = {}) {
     </div>`, root => {
     let audio = w.audio || '';
     const val = id => $('#' + id, root).value;
-    const collect = () => ({ word: val('wWord'), phonetic: val('wPhon'), pos: val('wPos'), meaning: val('wMean'), example: val('wEx'), exampleVi: val('wExVi'), note: val('wNote'), audio });
+    const collect = () => ({ word: val('wWord'), phonetic: val('wPhon'), pos: val('wPos'), meaning: val('wMean'), example: val('wEx'), exampleVi: val('wExVi'), note: val('wNote'), synonyms: val('wSyn'), antonyms: val('wAnt'), audio });
+
+    // Báo ngay khi từ đang gõ đã có trong tài khoản (ở chủ đề nào)
+    const showDup = () => {
+      const ds = [...new Set(Store.findDuplicates(val('wWord'), word?.id).map(d => { const t = Store.topic(d.topicId); return t ? `${t.icon} ${t.name}` : '?'; }))];
+      $('#wDup', root).textContent = ds.length ? `⚠️ Từ này đã có trong: ${ds.join(', ')}` : '';
+    };
+    $('#wWord', root).addEventListener('input', debounce(showDup, 250));
+    showDup();
 
     $('#wSpeak', root).addEventListener('click', e => { const t = val('wWord').trim(); if (t) TTS.speakWord({ word: t, audio }, e.currentTarget); });
 
@@ -96,18 +109,34 @@ export function wordForm(topicId, word, preset = {}) {
         if (d.pos && POS_LIST.includes(d.pos) && !val('wPos')) $('#wPos', root).value = d.pos;
         if (d.example && !val('wEx')) $('#wEx', root).value = d.example;
         if (d.definition && !val('wNote')) $('#wNote', root).value = 'EN: ' + d.definition;
+        if (d.synonyms?.length && !val('wSyn')) $('#wSyn', root).value = d.synonyms.join(', ');
+        if (d.antonyms?.length && !val('wAnt')) $('#wAnt', root).value = d.antonyms.join(', ');
         if (d.audio) { audio = d.audio; $('#wAudioHint', root).textContent = '🎧 Đã lấy được audio phát âm từ từ điển.'; }
         toast(d.phonetic ? 'Đã tra xong ✔' : 'Tìm thấy từ nhưng không có phiên âm');
+        gloss(); // từ điển chỉ có từ tiếng Anh → nhờ AI chú nghĩa (nếu có AI)
       } catch (err) { toast(err.message); }
       finally { btn.disabled = false; btn.textContent = '🔎 Tra'; }
     });
 
-    const save = (more) => {
+    // AI điền nghĩa tiếng Việt cho các từ đồng / trái nghĩa còn thiếu nghĩa
+    const gloss = async () => {
+      const syn = $('#wSyn', root), ant = $('#wAnt', root), b = $('#wGloss', root);
+      if (!AI.available || !(syn.value.trim() || ant.value.trim())) return;
+      if (b) { b.disabled = true; b.textContent = '⏳'; }
+      const [s2, a2] = await AI.glossRel(syn.value, ant.value);
+      if (syn.isConnected) { syn.value = s2; ant.value = a2; }
+      if (b) { b.disabled = false; b.textContent = '✨ Nghĩa'; }
+    };
+    $('#wGloss', root)?.addEventListener('click', gloss);
+
+    const save = async (more) => {
       const d = collect();
       if (!d.word.trim()) { toast('Vui lòng nhập từ tiếng Anh'); return; }
       if (!d.meaning.trim()) { toast('Vui lòng nhập nghĩa tiếng Việt'); return; }
       d.word = d.word.trim().replace(/\s+/g, ' ');
       if (!d.pos && isPhrase(d.word)) d.pos = 'phrase'; // cụm từ → tự gán loại "phrase"
+      const dups = Store.findDuplicates(d.word, word?.id);
+      if (dups.length && !(await confirmDuplicate(d.word, dups, isEdit))) return;
       if (isEdit) { Store.updateWord(word.id, d); toast('Đã cập nhật từ'); closeModal(); render(); }
       else {
         Store.addWord(topicId, d); toast(`Đã thêm "${d.word.trim()}"`); render();
@@ -120,18 +149,35 @@ export function wordForm(topicId, word, preset = {}) {
   });
 }
 
+/** Hỏi lại khi từ đã tồn tại. Mở đè lên form đang có (không dùng openModal vì sẽ thay thế form) */
+export function confirmDuplicate(text, dups, isEdit = false) {
+  const where = [...new Set(dups.map(d => { const t = Store.topic(d.topicId); return t ? `${t.icon} ${t.name}` : '?'; }))].join(', ');
+  return new Promise(resolve => {
+    const box = document.createElement('div');
+    box.className = 'modal-backdrop'; box.style.zIndex = '1001';
+    box.innerHTML = `<div class="modal" role="dialog" aria-modal="true"><h2>Từ đã có</h2><p class="muted">"<b>${esc(text)}</b>" đã có trong: ${esc(where)} (nghĩa: <i>${esc(dups[0].meaning)}</i>).<br>${isEdit ? 'Vẫn lưu?' : 'Vẫn thêm một bản nữa?'}</p>
+      <div class="modal-actions"><button class="btn" data-no>${isEdit ? 'Huỷ' : 'Không thêm'}</button><button class="btn btn-primary" data-yes>${isEdit ? 'Vẫn lưu' : 'Vẫn thêm'}</button></div></div>`;
+    const done = v => { box.remove(); resolve(v); };
+    box.addEventListener('mousedown', e => { if (e.target === box) done(false); });
+    $('[data-no]', box).addEventListener('click', () => done(false));
+    $('[data-yes]', box).addEventListener('click', () => done(true));
+    $('#modalRoot').appendChild(box);
+  });
+}
+
 /* ---------- Nhập nhanh nhiều từ ---------- */
 export function bulkForm(topicId) {
   openModal(`
     <h2>Nhập nhanh nhiều từ</h2>
     <p class="muted small">Mỗi dòng một từ <b>hoặc cụm từ</b>, các phần cách nhau bằng dấu <b>|</b> (hoặc Tab):<br>
-      <code>từ | phiên âm | nghĩa | ví dụ | dịch ví dụ</code><br>
+      <code>từ | phiên âm | nghĩa | ví dụ | dịch ví dụ | đồng nghĩa | trái nghĩa</code><br>
       Có thể bỏ trống phiên âm: <code>apple | | quả táo</code> hoặc chỉ ghi <code>apple | quả táo</code>.</p>
     <div class="field"><textarea id="bText" style="min-height:200px" placeholder="apple | /ˈæp.əl/ | quả táo | I eat an apple. | Tôi ăn một quả táo.
 banana | quả chuối
 I like the beach | tôi thích bãi biển
 look forward to | /lʊk ˈfɔːrwərd tuː/ | mong chờ"></textarea></div>
     <label class="check"><input type="checkbox" id="bAuto" checked> Tự động tra phiên âm & audio cho các từ chưa có phiên âm (cần internet)</label>
+    <label class="check mt"><input type="checkbox" id="bSkipDup" checked> Bỏ qua từ đã có trong tài khoản</label>
     <div class="modal-actions">
       <button class="btn" data-close>Huỷ</button>
       <button class="btn btn-primary" id="bSave">Thêm từ</button>
@@ -143,26 +189,33 @@ look forward to | /lʊk ˈfɔːrwərd tuː/ | mong chờ"></textarea></div>
       for (const line of lines) {
         const parts = line.split(/\s*\|\s*|\t/).map(s => s.trim());
         if (parts.length < 2) continue;
-        let [word, phonetic, meaning, example, exampleVi] = parts;
+        let [word, phonetic, meaning, example, exampleVi, synonyms, antonyms] = parts;
         if (parts.length === 2) { meaning = phonetic; phonetic = ''; }                       // "từ | nghĩa"
         else if (phonetic && !/^[\/\[]/.test(phonetic) && !meaning) { meaning = phonetic; phonetic = ''; } // phần 2 không phải phiên âm
         if (!word || !meaning) continue;
         word = word.replace(/\s+/g, ' ');
-        items.push({ word, phonetic, meaning, example, exampleVi, pos: isPhrase(word) ? 'phrase' : '' });
+        items.push({ word, phonetic, meaning, example, exampleVi, synonyms, antonyms, pos: isPhrase(word) ? 'phrase' : '' });
       }
       if (!items.length) { toast('Không có dòng nào hợp lệ'); return; }
       const btn = $('#bSave', root); btn.disabled = true;
+      const skipDup = $('#bSkipDup', root).checked;
       if ($('#bAuto', root).checked) {
         let i = 0;
         for (const it of items) {
+          if (skipDup && Store.findDuplicates(it.word).length) continue; // sẽ bị bỏ qua → khỏi tra
           i++; btn.textContent = `⏳ Đang tra ${i}/${items.length}...`;
           if (!it.phonetic) {
-            try { const d = await lookupWord(it.word); it.phonetic = d.phonetic; it.audio = d.audio; it.pos = d.pos || it.pos; if (!it.example) it.example = d.example; } catch { /* bỏ qua từ không tra được */ }
+            try { const d = await lookupWord(it.word); it.phonetic = d.phonetic; it.audio = d.audio; it.pos = d.pos || it.pos; if (!it.example) it.example = d.example; if (!it.synonyms && d.synonyms?.length) it.synonyms = d.synonyms.join(', '); if (!it.antonyms && d.antonyms?.length) it.antonyms = d.antonyms.join(', '); } catch { /* bỏ qua từ không tra được */ }
           }
         }
       }
-      items.forEach(it => Store.addWord(topicId, it));
-      toast(`Đã thêm ${items.length} từ`);
+      // Đồng / trái nghĩa lấy từ từ điển chưa có nghĩa tiếng Việt → nhờ AI chú nghĩa một lượt (nếu có AI)
+      if (AI.available) {
+        const need = items.filter(it => it.synonyms || it.antonyms);
+        if (need.length) { btn.textContent = '⏳ AI chú nghĩa đồng / trái nghĩa...'; for (const it of need) { const [s, a] = await AI.glossRel(it.synonyms || '', it.antonyms || ''); it.synonyms = s; it.antonyms = a; } }
+      }
+      const { added, skipped } = Store.addWords(topicId, items, { skipDup });
+      toast(added.length ? `Đã thêm ${added.length} từ${skipped.length ? ` · bỏ qua ${skipped.length} từ đã có` : ''}` : `Không thêm từ nào – ${skipped.length} từ đều đã có trong tài khoản`, 4000);
       closeModal(); render();
     });
   });
@@ -172,7 +225,7 @@ look forward to | /lʊk ˈfɔːrwərd tuː/ | mong chờ"></textarea></div>
 /* ---------- Chia sẻ chủ đề: xuất ra văn bản để người khác dán vào "Nhập nhanh" ---------- */
 export function shareTopicForm(topic) {
   const words = Store.wordsOf(topic.id);
-  const text = words.map(w => [w.word, w.phonetic, w.meaning, w.example, w.exampleVi].map(x => (x || '').replace(/\|/g, '/')).join(' | ').replace(/( \| )+$/, '')).join('\n');
+  const text = words.map(w => [w.word, w.phonetic, w.meaning, w.example, w.exampleVi, w.synonyms, w.antonyms].map(x => (x || '').replace(/\|/g, '/')).join(' | ').replace(/( \| )+$/, '')).join('\n');
   openModal(`
     <h2>📤 Chia sẻ chủ đề "${esc(topic.name)}"</h2>
     <div class="card pub-box ${topic.publicId ? 'on' : ''}">

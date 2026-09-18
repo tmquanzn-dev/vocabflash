@@ -1,16 +1,31 @@
-import { $, $$, toast } from './utils.js?v=12';
-import { Auth } from './auth.js?v=12';
-import { Store } from './store.js?v=12';
-import { TTS } from './tts.js?v=12';
-import { applyTheme, toggleTheme, toggleSidebar, closeSidebar, renderSyncState, renderUserCard } from './shell.js?v=12';
-import { closeModal, isModalOpen, confirmModal } from './modal.js?v=12';
-import { topicForm } from './forms.js?v=12';
-import { render, parseHash } from './router.js?v=12';
-import { Inbox } from './inbox.js?v=12';
+import { $, $$, toast } from './utils.js?v=13';
+import { Auth } from './auth.js?v=13';
+import { Store } from './store.js?v=13';
+import { TTS } from './tts.js?v=13';
+import { applyTheme, toggleTheme, toggleSidebar, closeSidebar, renderSyncState, renderUserCard } from './shell.js?v=13';
+import { closeModal, isModalOpen, confirmModal } from './modal.js?v=13';
+import { topicForm } from './forms.js?v=13';
+import { render, parseHash } from './router.js?v=13';
+import { Inbox } from './inbox.js?v=13';
+import { deletedToast } from './undo.js?v=13';
+
+/* PWA: đăng ký service worker (chỉ chạy trên https hoặc localhost) và giữ lại sự kiện cài đặt để trang Cài đặt hiện nút */
+function initPWA() {
+  if ('serviceWorker' in navigator && (location.protocol === 'https:' || /^(localhost|127\.0\.0\.1)$/.test(location.hostname))) {
+    navigator.serviceWorker.register('sw.js').catch(err => console.warn('Không đăng ký được service worker', err));
+  }
+  window.addEventListener('beforeinstallprompt', e => {
+    e.preventDefault();
+    window.vfInstallPrompt = e; // trang Cài đặt dùng để gọi prompt()
+    document.dispatchEvent(new Event('vf-installable'));
+  });
+  window.addEventListener('appinstalled', () => { window.vfInstallPrompt = null; toast('Đã cài VocabFlash lên thiết bị 🎉'); document.dispatchEvent(new Event('vf-installable')); });
+}
 
 /* Điểm khởi động ứng dụng */
 async function boot() {
   applyTheme();
+  initPWA();
   TTS.init();
   TTS.onVoicesChanged = () => { if (parseHash().view === 'settings' && Store.data) render(); };
 
@@ -23,7 +38,7 @@ async function boot() {
     const t = Store.topic(b.dataset.delTopic); if (!t) return;
     const n = Store.wordsOf(t.id).length;
     if (await confirmModal('Xoá chủ đề?', `Chủ đề "${t.name}" và ${n} từ vựng bên trong sẽ bị xoá vĩnh viễn.`, 'Xoá chủ đề')) {
-      Store.deleteTopic(t.id); toast(`Đã xoá "${t.name}"`);
+      Store.deleteTopic(t.id); deletedToast(`Đã xoá "${t.name}"`);
       if (location.hash.includes('/' + t.id)) location.hash = '#/'; else render();
     }
   });

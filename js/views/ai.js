@@ -1,9 +1,9 @@
-import { $, $$, esc, toast, isPhrase, POS_LIST, EMOJIS } from '../utils.js?v=12';
-import { Store } from '../store.js?v=12';
-import { setTitle, renderSidebar } from '../shell.js?v=12';
-import { go } from '../router.js?v=12';
-import { AI, AI_MODELS, AI_LEVELS, AI_TIMEOUT } from '../ai.js?v=12';
-import { lookupWord } from '../dictionary.js?v=12';
+import { $, $$, esc, toast, isPhrase, POS_LIST, EMOJIS } from '../utils.js?v=13';
+import { Store } from '../store.js?v=13';
+import { setTitle, renderSidebar } from '../shell.js?v=13';
+import { go } from '../router.js?v=13';
+import { AI, AI_MODELS, AI_LEVELS, AI_TIMEOUT } from '../ai.js?v=13';
+import { lookupWord } from '../dictionary.js?v=13';
 
 const keyState = () => AI.ownKey ? '✔ Key riêng' : AI.usingDefault ? '✔ Key mặc định' : AI.usingProxy ? '✔ Dùng AI của VocabFlash' : 'Chưa có key';
 // Giữ kết quả khi quay lại trang trong cùng phiên
@@ -117,9 +117,9 @@ export function viewAI(el) {
         const name = $('#aiName', box).value.trim() || 'AI vocabulary';
         topicId = Store.addTopic({ name, icon: $('#aiIcon', box).value, desc: `Trích xuất bằng AI · ${st.src === 'url' ? st.url.slice(0, 80) : 'từ đoạn văn'}` }).id;
       } else topicId = $('#aiTopic', box).value;
-      items.forEach(w => Store.addWord(topicId, { ...w, pos: POS_LIST.includes(w.pos) ? w.pos : (isPhrase(w.word) ? 'phrase' : ''), note: [w.cefr ? `CEFR ${w.cefr}` : '', w.note ? 'EN: ' + w.note : ''].filter(Boolean).join(' · ') }));
+      const { added, skipped } = Store.addWords(topicId, items.map(w => ({ ...w, pos: POS_LIST.includes(w.pos) ? w.pos : (isPhrase(w.word) ? 'phrase' : ''), note: [w.cefr ? `CEFR ${w.cefr}` : '', w.note ? 'EN: ' + w.note : ''].filter(Boolean).join(' · ') })));
       renderSidebar();
-      toast(`Đã lưu ${items.length} từ`);
+      toast(added.length ? `Đã lưu ${added.length} từ${skipped.length ? ` · bỏ qua ${skipped.length} từ đã có: ${skipped.slice(0, 4).map(w => w.word).join(', ')}${skipped.length > 4 ? '…' : ''}` : ''}` : `${skipped.length} từ đều đã có trong tài khoản – không thêm lại`, 5000);
       st.result = null; st.picked = new Set();
       go('/topic/' + topicId);
     });

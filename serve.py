@@ -6,6 +6,7 @@ PORT = int(sys.argv[1]) if len(sys.argv) > 1 else 8080
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 class Handler(http.server.SimpleHTTPRequestHandler):
+    extensions_map = {**http.server.SimpleHTTPRequestHandler.extensions_map, '.webmanifest': 'application/manifest+json', '.js': 'text/javascript'}
     def end_headers(self):
         self.send_header('Cache-Control', 'no-store, must-revalidate')
         self.send_header('Expires', '0')

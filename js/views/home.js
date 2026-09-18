@@ -1,11 +1,12 @@
-import { $, $$, esc, toast } from '../utils.js?v=12';
-import { Store } from '../store.js?v=12';
-import { Auth } from '../auth.js?v=12';
-import { TTS } from '../tts.js?v=12';
-import { setTitle } from '../shell.js?v=12';
-import { confirmModal } from '../modal.js?v=12';
-import { topicForm, libraryForm } from '../forms.js?v=12';
-import { render } from '../router.js?v=12';
+import { $, $$, esc, toast } from '../utils.js?v=13';
+import { Store } from '../store.js?v=13';
+import { Auth } from '../auth.js?v=13';
+import { TTS } from '../tts.js?v=13';
+import { setTitle } from '../shell.js?v=13';
+import { confirmModal } from '../modal.js?v=13';
+import { deletedToast } from '../undo.js?v=13';
+import { topicForm, libraryForm } from '../forms.js?v=13';
+import { render } from '../router.js?v=13';
 
 // Chế độ quản lý chủ đề: chọn nhiều chủ đề để xoá
 const mg = { on: false, sel: new Set() };
@@ -128,7 +129,7 @@ export function viewHome(el) {
     e.preventDefault(); e.stopPropagation();
     const t = Store.topic(b.dataset.del); if (!t) return;
     const n = Store.wordsOf(t.id).length;
-    if (await confirmModal('Xoá chủ đề?', `Chủ đề "${t.name}" và ${n} từ vựng bên trong sẽ bị xoá vĩnh viễn.`, 'Xoá chủ đề')) { Store.deleteTopic(t.id); toast(`Đã xoá "${t.name}"`); render(); }
+    if (await confirmModal('Xoá chủ đề?', `Chủ đề "${t.name}" và ${n} từ vựng bên trong sẽ bị xoá vĩnh viễn.`, 'Xoá chủ đề')) { Store.deleteTopic(t.id); deletedToast(`Đã xoá "${t.name}"`); render(); }
   }));
 
   /* ----- quản lý (chọn nhiều / xoá tất cả) chủ đề ----- */
@@ -150,12 +151,12 @@ export function viewHome(el) {
     const list = topics.filter(t => mg.sel.has(t.id)); if (!list.length) return;
     const nw = list.reduce((s, t) => s + Store.wordsOf(t.id).length, 0);
     if (await confirmModal('Xoá các chủ đề đã chọn?', `${list.length} chủ đề (${list.map(t => t.name).join(', ')}) cùng ${nw} từ bên trong sẽ bị xoá vĩnh viễn.`, `Xoá ${list.length} chủ đề`)) {
-      Store.deleteTopics(list.map(t => t.id)); mg.sel.clear(); toast(`Đã xoá ${list.length} chủ đề`); render();
+      Store.deleteTopics(list.map(t => t.id)); mg.sel.clear(); deletedToast(`Đã xoá ${list.length} chủ đề`); render();
     }
   });
   $('[data-act="delAllTopics"]', el)?.addEventListener('click', async () => {
     if (await confirmModal('Xoá tất cả chủ đề?', `Toàn bộ ${topics.length} chủ đề và ${words.length} từ vựng sẽ bị xoá vĩnh viễn. Tiến độ, cài đặt và ngữ pháp vẫn được giữ. Hãy xuất file sao lưu trong Cài đặt trước nếu cần.`, 'Xoá tất cả')) {
-      Store.deleteTopics(topics.map(t => t.id)); mg.on = false; mg.sel.clear(); toast('Đã xoá tất cả chủ đề'); render();
+      Store.deleteTopics(topics.map(t => t.id)); mg.on = false; mg.sel.clear(); deletedToast('Đã xoá tất cả chủ đề'); render();
     }
   });
 }

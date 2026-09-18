@@ -1,17 +1,20 @@
-import { $, $$, esc, shuffle, sample, toast, isTyping, normalizeAnswer } from '../utils.js?v=12';
-import { Store } from '../store.js?v=12';
-import { TTS } from '../tts.js?v=12';
-import { setTitle, renderSidebar } from '../shell.js?v=12';
-import { isModalOpen } from '../modal.js?v=12';
-import { onLeave, go } from '../router.js?v=12';
-import { TENSES, TENSE_BY_ID, LEVELS } from '../grammar/tenses.js?v=12';
-import { bankQuestions } from '../grammar/bank.js?v=12';
-import { genMany } from '../grammar/gen.js?v=12';
+import { $, $$, esc, shuffle, sample, toast, isTyping, normalizeAnswer } from '../utils.js?v=13';
+import { Store } from '../store.js?v=13';
+import { TTS } from '../tts.js?v=13';
+import { setTitle, renderSidebar } from '../shell.js?v=13';
+import { isModalOpen } from '../modal.js?v=13';
+import { onLeave, go } from '../router.js?v=13';
+import { TENSES, TENSE_BY_ID, LEVELS } from '../grammar/tenses.js?v=13';
+import { bankQuestions } from '../grammar/bank.js?v=13';
+import { genMany } from '../grammar/gen.js?v=13';
+import { timelineSVG } from '../grammar/timeline.js?v=13';
+import { AI } from '../ai.js?v=13';
 
 const GROUPS = ['Hiện tại', 'Quá khứ', 'Tương lai'];
 const MIX = { id: 'mix', name: 'Mixed Tenses', vi: 'Tổng hợp 13 thì', icon: '🎲', short: 'Trộn ngẫu nhiên tất cả các thì – luyện phân biệt' };
 // Tuỳ chọn luyện tập nhớ giữa các lần vào (không lưu cloud)
-const opt = { n: 15, mode: 'mix', tab: 'theory' };
+const opt = { n: 15, mode: 'mix', tab: 'theory', aiTopic: '', aiN: 10 };
+const AI_TOPICS = ['Công nghệ', 'Du lịch', 'Công việc', 'Trường học', 'Thể thao', 'Ẩm thực', 'Gia đình', 'Môi trường', 'Phim & nhạc'];
 
 /* Điều hướng: #/grammar · #/grammar/<thì> · #/grammar/<thì>/practice/<mức> */
 export function viewGrammar(el, { id, parts }) {
@@ -71,24 +74,28 @@ function viewTense(el, t) {
     <div id="gBody"></div>`;
   const body = $('#gBody', el);
   const drawTheory = () => {
+    // Ví dụ mẫu cho 3 khối công thức: lấy câu khẳng định / phủ định / nghi vấn trong danh sách ví dụ
+    const exFor = kind => t.examples.find(([en]) => kind === 'q' ? /\?$/.test(en) : kind === 'neg' ? /n't|\bnot\b/i.test(en) : !/\?$/.test(en) && !/n't|\bnot\b/i.test(en)) || t.examples[0];
+    const fblock = (kind, cls, label, ic) => { const [en, vi] = exFor(kind); return `<div class="g-fblock ${cls}"><div class="g-fhead"><span>${ic}</span> ${label}</div><code>${t.formula[kind]}</code><div class="g-fex"><button class="btn-icon sm btn-speak" data-say="${esc(en)}">🔊</button><div><b>${esc(en)}</b><div class="small muted">${esc(vi)}</div></div></div></div>`; };
     body.innerHTML = `
-      <div class="card g-formula">
-        <h3>🧮 Công thức</h3>
-        <div class="g-frow"><span class="g-tag ok">Khẳng định</span><code>${t.formula.aff}</code></div>
-        <div class="g-frow"><span class="g-tag bad">Phủ định</span><code>${t.formula.neg}</code></div>
-        <div class="g-frow"><span class="g-tag q">Nghi vấn</span><code>${t.formula.q}</code></div>
+      <div class="card g-tl-card">
+        <div class="row between"><h3 style="margin:0">🕒 Trục thời gian</h3><span class="muted small">${esc(t.short)}</span></div>
+        ${timelineSVG(t.id)}
       </div>
+      <h3 class="g-h">🧮 Công thức</h3>
+      <div class="g-fgrid">${fblock('aff', 'ok', 'Khẳng định', '✓')}${fblock('neg', 'bad', 'Phủ định', '✗')}${fblock('q', 'q', 'Nghi vấn', '?')}</div>
+      <h3 class="g-h">🎯 Khi nào dùng? <span class="muted small" style="font-weight:500">– bấm vào câu ví dụ để xem nghĩa</span></h3>
+      <div class="g-usegrid">${t.uses.map(([d, en, vi], i) => `<div class="g-use"><div class="g-usen">${i + 1}</div><div class="g-usebody"><b>${d}</b>
+        <div class="g-flip" data-flip><button class="btn-icon sm btn-speak" data-say="${esc(en)}">🔊</button><span class="en">${esc(en)}</span><span class="vi">${esc(vi)}</span></div></div></div>`).join('')}</div>
       <div class="dash-grid mt">
-        <div class="card">
-          <h3>🎯 Cách dùng</h3>
-          <ol class="g-uses">${t.uses.map(([d, en, vi]) => `<li><b>${d}</b><div class="g-ex"><button class="btn-icon sm btn-speak" data-say="${esc(en)}">🔊</button><span>${esc(en)}</span></div><div class="small muted">${esc(vi)}</div></li>`).join('')}</ol>
-        </div>
-        <div class="stack">
-          <div class="card"><h3>🔎 Dấu hiệu nhận biết</h3><div class="row" style="gap:6px">${t.signals.map(s => `<span class="chip sig">${esc(s)}</span>`).join('')}</div></div>
-          <div class="card"><h3>💬 Ví dụ thêm</h3><ul class="plain-list">${t.examples.map(([en, vi]) => `<li><button class="btn-icon sm btn-speak" data-say="${esc(en)}">🔊</button><div class="info"><b>${esc(en)}</b><div class="small muted">${esc(vi)}</div></div></li>`).join('')}</ul></div>
+        <div class="callout sig"><div class="callout-h">🔎 Dấu hiệu nhận biết</div><div class="row" style="gap:6px">${t.signals.map(s => `<span class="chip sig">${esc(s)}</span>`).join('')}</div><p class="small muted" style="margin:10px 0 0">Thấy các từ này trong câu → nghĩ ngay tới <b>${esc(t.vi)}</b>.</p></div>
+        <div>
+          <h3 class="g-h" style="margin-top:0">💬 Ví dụ thêm <span class="muted small" style="font-weight:500">– lật thẻ để xem nghĩa</span></h3>
+          <div class="g-exgrid">${t.examples.map(([en, vi]) => `<div class="g-excard" data-flip><div class="g-exin"><div class="g-exface front"><button class="btn-icon sm btn-speak" data-say="${esc(en)}">🔊</button><b>${esc(en)}</b><span class="hint">bấm để lật</span></div><div class="g-exface back"><span>${esc(vi)}</span></div></div></div>`).join('')}</div>
         </div>
       </div>
-      <div class="card mt"><h3>⚠️ Lưu ý & lỗi thường gặp</h3><ul class="g-notes">${t.notes.map(n => `<li>${n}</li>`).join('')}</ul></div>
+      <h3 class="g-h">⚠️ Lưu ý & lỗi thường gặp</h3>
+      <div class="stack">${t.notes.map(n => `<div class="callout warn"><span class="callout-ic">💡</span><div>${n}</div></div>`).join('')}</div>
       <div class="row mt" style="justify-content:center"><button class="btn btn-primary btn-lg" data-tab="practice">✏️ Làm bài tập ngay</button></div>`;
   };
   const drawPractice = () => {
@@ -103,16 +110,52 @@ function viewTense(el, t) {
         <div class="row"><label>Số câu:</label><select class="input" id="gN" style="width:auto">${[10, 15, 20, 30, 50].map(n => `<option value="${n}" ${opt.n === n ? 'selected' : ''}>${n} câu</option>`).join('')}</select></div>
         <div class="row"><label>Dạng bài:</label><div class="seg" id="gMode">${[['mix', '🎲 Trộn'], ['mc', '🔘 Trắc nghiệm'], ['fill', '⌨️ Tự gõ']].map(([m, l]) => `<button class="${opt.mode === m ? 'active' : ''}" data-mode="${m}">${l}</button>`).join('')}</div></div>
         <span class="muted small">Câu hỏi gồm bộ soạn tay + bộ sinh tự động, xáo trộn mỗi lần – không lần nào giống lần nào.</span>
+      </div>
+      <div class="card mt ai-key">
+        <div class="row between"><div><h3 style="margin:0">✨ Sinh bài tập bằng AI</h3><div class="small muted">Gemini viết câu mới theo <b>chủ đề bạn chọn</b>, tự nhiên như sách giáo khoa, kèm giải thích tiếng Việt cho từng câu. Mức độ & dạng bài lấy theo lựa chọn phía trên.</div></div>${AI.available ? '' : '<a class="chip bad" href="#/ai">Chưa có AI – cấu hình</a>'}</div>
+        <div class="row mt" style="gap:6px" id="gTopics">${AI_TOPICS.map(x => `<button class="chip sig g-topic ${opt.aiTopic === x ? 'on' : ''}" data-topic="${esc(x)}">${esc(x)}</button>`).join('')}</div>
+        <div class="row mt">
+          <input class="input" id="gTopic" placeholder="Hoặc gõ chủ đề bất kỳ: Harry Potter, bóng đá, du học…" value="${esc(opt.aiTopic)}" style="max-width:360px">
+          <label>Mức:</label><div class="seg" id="gAiLv">${LEVELS.map(l => `<button class="${l.id === (opt.aiLv || 1) ? 'active' : ''}" data-lv="${l.id}">${l.icon} ${l.name}</button>`).join('')}</div>
+          <select class="input" id="gAiN" style="width:auto">${[5, 10, 15].map(n => `<option value="${n}" ${opt.aiN === n ? 'selected' : ''}>${n} câu</option>`).join('')}</select>
+          <button class="btn btn-primary" id="gAiRun" ${AI.available ? '' : 'disabled'}>✨ Sinh & làm bài</button>
+        </div>
+        <div class="ai-status muted small mt" id="gAiStatus"></div>
       </div>`;
     $('#gN', body).addEventListener('change', e => { opt.n = +e.target.value; });
     $('#gMode', body).addEventListener('click', e => { const b = e.target.closest('[data-mode]'); if (b) { opt.mode = b.dataset.mode; $$('[data-mode]', body).forEach(x => x.classList.toggle('active', x === b)); } });
+    $('#gTopics', body).addEventListener('click', e => { const b = e.target.closest('[data-topic]'); if (!b) return; opt.aiTopic = b.dataset.topic; $('#gTopic', body).value = opt.aiTopic; $$('.g-topic', body).forEach(x => x.classList.toggle('on', x === b)); });
+    $('#gTopic', body).addEventListener('input', e => { opt.aiTopic = e.target.value; $$('.g-topic', body).forEach(x => x.classList.toggle('on', x.dataset.topic === opt.aiTopic)); });
+    $('#gAiLv', body).addEventListener('click', e => { const b = e.target.closest('[data-lv]'); if (b) { opt.aiLv = +b.dataset.lv; $$('#gAiLv button', body).forEach(x => x.classList.toggle('active', x === b)); } });
+    $('#gAiN', body).addEventListener('change', e => { opt.aiN = +e.target.value; });
+    $('#gAiRun', body).addEventListener('click', e => startAI(el, t, opt.aiLv || 1, e.currentTarget, $('#gAiStatus', body)));
   };
   const show = tab => { opt.tab = tab; $$('#gTabs button', el).forEach(b => b.classList.toggle('active', b.dataset.tab === tab)); tab === 'theory' ? drawTheory() : drawPractice(); window.scrollTo(0, 0); };
   el.addEventListener('click', e => {
     const s = e.target.closest('[data-say]'); if (s) { TTS.speakText(s.dataset.say, s); return; }
+    const f = e.target.closest('[data-flip]'); if (f) { f.classList.toggle('show'); return; }
     const b = e.target.closest('[data-tab]'); if (b) show(b.dataset.tab);
   });
   show(isMix ? 'practice' : opt.tab);
+}
+
+/* ---------- Sinh bộ câu hỏi bằng AI rồi vào làm bài ---------- */
+async function startAI(el, t, lv, btn, statusEl) {
+  const tenses = (t.id === 'mix' ? TENSES : [t]).map(x => ({ id: x.id, name: x.name }));
+  const topic = (opt.aiTopic || '').trim();
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ AI đang soạn câu hỏi...'; }
+  const t0 = Date.now(); let timer = null;
+  if (statusEl) { const tick = () => { statusEl.textContent = `⏳ Đang sinh ${opt.aiN} câu chủ đề "${topic || 'đời sống'}"… ${Math.round((Date.now() - t0) / 1000)}s`; }; tick(); timer = setInterval(tick, 1000); }
+  try {
+    const qs = await AI.grammarQuestions({ tenses, level: lv, topic, n: opt.aiN, mode: opt.mode });
+    clearInterval(timer);
+    runPractice(el, t, lv, { questions: qs, topic });
+  } catch (err) {
+    clearInterval(timer);
+    if (statusEl) { statusEl.textContent = '⚠️ ' + err.message; statusEl.style.color = 'var(--danger)'; }
+    else toast('Lỗi AI: ' + err.message, 5000);
+    if (btn) { btn.disabled = false; btn.textContent = '✨ Sinh & làm bài'; }
+  }
 }
 
 /* ---------- Xây bộ câu hỏi: soạn tay + sinh tự động, xáo trộn ---------- */
@@ -136,14 +179,19 @@ const same = (a, b) => { const f = s => normalizeAnswer(s).replace(/'/g, ''); re
 const blankHTML = q => esc(q).replace(/___/g, '<span class="g-blank">____</span>').replace(/\(([^)]+)\)/g, '<span class="g-hint">($1)</span>');
 
 /* ---------- Làm bài ---------- */
-function runPractice(el, t, lv) {
+function runPractice(el, t, lv, preset) {
   const level = LEVELS.find(l => l.id === lv);
   const tenseIds = t.id === 'mix' ? TENSES.map(x => x.id) : [t.id];
   setTitle(`${t.vi} · ${level.name}`);
   const back = `#/grammar/${t.id}`;
-  const questions = buildSet(tenseIds, lv, opt.n, opt.mode);
+  // preset: bộ câu hỏi do AI sinh ({ questions, topic }) – gán dạng bài theo lựa chọn giống bộ thường
+  const questions = preset ? shuffle(preset.questions).map(q => {
+    let kind = q.kind;
+    if (kind !== 'pick') kind = opt.mode === 'mc' ? 'mc' : opt.mode === 'fill' ? 'fill' : (lv === 3 ? (Math.random() < .6 ? 'fill' : 'mc') : (Math.random() < .3 ? 'fill' : 'mc'));
+    return { ...q, kind, opts: shuffle(q.opts) };
+  }) : buildSet(tenseIds, lv, opt.n, opt.mode);
   if (!questions.length) { el.innerHTML = `<div class="card empty-state">Chưa có câu hỏi. <a class="btn mt" href="${back}">Quay lại</a></div>`; return; }
-  const st = { i: 0, correct: 0, wrong: [], answered: false };
+  const st = { i: 0, correct: 0, wrong: [], answered: false, userAns: '' };
 
   const draw = () => {
     if (st.i >= questions.length) { drawResult(); return; }
@@ -160,7 +208,7 @@ function runPractice(el, t, lv) {
         <div class="fc-top"><span class="muted">Câu <b>${st.i + 1}</b> / ${questions.length}</span><span class="muted">Đúng: <b style="color:var(--success)">${st.correct}</b> · Sai: <b style="color:var(--danger)">${st.wrong.length}</b></span><button class="btn btn-sm" data-act="quit">✕ Thoát</button></div>
         <div class="progress mb"><div style="width:${st.i / questions.length * 100}%"></div></div>
         <div class="card q-card">
-          <div class="g-meta"><span class="chip">${level.icon} ${level.name}</span>${t.id === 'mix' ? `<span class="chip sig">${tense.icon} ${esc(tense.vi)}</span>` : ''}<span class="chip">${q.kind === 'fill' ? '⌨️ Tự gõ' : q.kind === 'pick' ? '✅ Chọn câu đúng' : '🔘 Trắc nghiệm'}</span></div>
+          <div class="g-meta"><span class="chip">${level.icon} ${level.name}</span>${t.id === 'mix' ? `<span class="chip sig">${tense.icon} ${esc(tense.vi)}</span>` : ''}<span class="chip">${q.kind === 'fill' ? '⌨️ Tự gõ' : q.kind === 'pick' ? '✅ Chọn câu đúng' : '🔘 Trắc nghiệm'}</span>${q.ai ? `<span class="chip good">✨ AI${preset?.topic ? ' · ' + esc(preset.topic) : ''}</span>` : ''}</div>
           ${body}<div id="qFeedback"></div>
         </div>
       </div>`;
@@ -177,16 +225,30 @@ function runPractice(el, t, lv) {
           <div class="q-fb-title">${ok ? '🎉 Chính xác!' : '❌ Chưa đúng'}</div>
           ${ok && q.kind !== 'pick' ? '' : `<div class="q-fb-ans">Đáp án: <b>${esc(q.a)}</b></div>`}
           <div class="q-fb-ans muted">${q.x ? esc(q.x) : `${tense.icon} ${esc(tense.vi)}: <code>${tense.formula.aff}</code>`}${t.id === 'mix' || q.x ? ` · <a href="#/grammar/${tense.id}" target="_blank" style="color:var(--primary)">xem lý thuyết ${esc(tense.name)}</a>` : ''}</div>
+          ${!ok && AI.available ? `<button class="btn btn-sm g-explain-btn" data-act="explain">✨ Nhờ AI giải thích kỹ hơn</button>` : ''}
         </div>
         <button class="btn ${ok ? 'btn-success' : 'btn-primary'}" data-act="next" autofocus>${last ? 'Xem kết quả' : 'Câu tiếp'} →</button>
       </div>
+      <div id="gExplain"></div>
       <div class="muted small" style="text-align:right;margin-top:6px">Nhấn <span class="kbd">Enter</span> để tiếp tục</div>`;
+  };
+  // Gửi câu hỏi + đáp án của người học cho Gemini → giải thích dấu hiệu, vì sao dùng thì đó, vì sao sai
+  const explain = async btn => {
+    const q = questions[st.i]; const box = $('#gExplain', el); if (!box) return;
+    btn.disabled = true; btn.textContent = '⏳ AI đang giải thích...';
+    box.innerHTML = '';
+    try {
+      const text = await AI.explainGrammar({ q: q.q, a: q.a, user: st.userAns, tense: TENSE_BY_ID[q.tense].name });
+      box.innerHTML = `<div class="callout ai"><div class="callout-h">✨ AI giải thích</div><div class="g-explain">${esc(text).replace(/\n/g, '<br>')}</div></div>`;
+      btn.remove();
+    } catch (err) { box.innerHTML = `<div class="callout warn"><span class="callout-ic">⚠️</span><div>${esc(err.message)}</div></div>`; btn.disabled = false; btn.textContent = '✨ Nhờ AI giải thích kỹ hơn'; }
   };
   const answer = ok => { const q = questions[st.i]; st.answered = true; if (ok) st.correct++; else st.wrong.push(q); showFeedback(ok, q); };
   const check = val => {
     const inp = $('#gAns', el); if (!inp || !val.trim()) { toast('Hãy nhập đáp án'); return; }
     const q = questions[st.i];
     const ok = same(val, q.a) || q.alts.some(a => same(val, a));
+    st.userAns = val.trim();
     inp.disabled = true; inp.classList.add(ok ? 'is-ok' : 'is-bad');
     answer(ok);
   };
@@ -206,7 +268,8 @@ function runPractice(el, t, lv) {
         <div class="result-score">${pct}%</div>
         <p class="muted">Đúng ${st.correct} / ${questions.length} câu · tốt nhất ${Store.grammarStat(t.id, lv).best}% · 🔥 chuỗi ${Store.streak()} ngày</p>
         <div class="row" style="justify-content:center">
-          <a class="btn btn-primary" href="#/grammar/${t.id}/practice/${lv}" data-act="retry">🔁 Làm bộ mới</a>
+          ${preset ? `<button class="btn btn-primary" data-act="retryAI">✨ Sinh bộ AI mới${preset.topic ? ` (${esc(preset.topic)})` : ''}</button>` : ''}
+          <a class="btn ${preset ? '' : 'btn-primary'}" href="#/grammar/${t.id}/practice/${lv}" data-act="retry">🔁 Làm bộ ${preset ? 'thường' : 'mới'}</a>
           ${lv < 3 && pct >= 80 ? `<a class="btn btn-success" href="#/grammar/${t.id}/practice/${lv + 1}">Lên mức ${LEVELS[lv].name} →</a>` : ''}
           <a class="btn" href="${back}">← Quay lại</a>
         </div>
@@ -221,7 +284,7 @@ function runPractice(el, t, lv) {
   el.addEventListener('click', e => {
     const o = e.target.closest('.q-opt');
     if (o && !st.answered) {
-      const q = questions[st.i]; const ok = o.dataset.ans === q.a;
+      const q = questions[st.i]; const ok = o.dataset.ans === q.a; st.userAns = o.dataset.ans;
       $$('.q-opt', el).forEach(b => { b.disabled = true; if (b.dataset.ans === q.a) b.classList.add('correct'); });
       if (!ok) o.classList.add('wrong');
       answer(ok); return;
@@ -231,8 +294,10 @@ function runPractice(el, t, lv) {
     if (a === 'check') check($('#gAns', el)?.value || '');
     else if (a === 'hint') { const q = questions[st.i]; const tense = TENSE_BY_ID[q.tense]; toast(`💡 ${tense.vi}: ${tense.formula.aff.replace(/&nbsp;/g, ' ')}`, 4000); }
     else if (a === 'next') next();
+    else if (a === 'explain') explain(b);
     else if (a === 'quit') location.hash = back;
     else if (a === 'retry') { e.preventDefault(); runPractice(el, t, lv); }
+    else if (a === 'retryAI') { b.disabled = true; b.textContent = '⏳ AI đang soạn...'; startAI(el, t, lv, b, null); }
   });
   const onKey = e => {
     if (isModalOpen()) return;

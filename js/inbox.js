@@ -1,6 +1,6 @@
-import { $, toast } from './utils.js?v=12';
-import { Auth } from './auth.js?v=12';
-import { Store } from './store.js?v=12';
+import { $, toast } from './utils.js?v=13';
+import { Auth } from './auth.js?v=13';
+import { Store } from './store.js?v=13';
 
 /**
  * Hộp thư từ: các từ do extension Chrome gửi lên bảng public.inbox_words.

@@ -1,4 +1,4 @@
-import { fetchTimeout } from './utils.js?v=12';
+import { fetchTimeout } from './utils.js?v=13';
 
 /* Tra từ điển online để lấy phiên âm IPA, loại từ, ví dụ, audio.
    Nguồn 1: dictionaryapi.dev (IPA chuẩn + audio người thật, nhưng hay chậm/lỗi)
@@ -13,13 +13,25 @@ async function lookupDictApi(word) {
   const meaning = e.meanings?.[0];
   const def = meaning?.definitions?.[0];
   const exDef = meaning?.definitions?.find(d => d.example);
+  // Đồng / trái nghĩa nằm rải rác ở cấp meaning và từng definition → gom lại, bỏ trùng
+  const gather = key => uniq((e.meanings || []).flatMap(m => [...(m[key] || []), ...(m.definitions || []).flatMap(d => d[key] || [])]));
   return {
     phonetic: e.phonetic || phs.find(p => p.text)?.text || withAudio?.text || '',
     audio: withAudio?.audio || '',
     pos: meaning?.partOfSpeech || '',
     definition: def?.definition || '',
     example: exDef?.example || '',
+    synonyms: gather('synonyms'), antonyms: gather('antonyms'),
   };
+}
+
+const uniq = (arr, n = 6) => [...new Set(arr.map(x => String(x).trim().toLowerCase()).filter(Boolean))].slice(0, n);
+
+// Đồng / trái nghĩa từ Datamuse (rel_syn / rel_ant) – dùng khi nguồn 1 không có
+async function lookupRelated(word) {
+  const get = rel => fetchTimeout(`https://api.datamuse.com/words?${rel}=${encodeURIComponent(word)}&max=6`, 6000).then(r => r.ok ? r.json() : []).then(l => l.map(x => x.word)).catch(() => []);
+  const [synonyms, antonyms] = await Promise.all([get('rel_syn'), get('rel_ant')]);
+  return { synonyms: uniq(synonyms), antonyms: uniq(antonyms) };
 }
 
 const ARPA = {
@@ -62,6 +74,7 @@ async function lookupDatamuse(word) {
     pos: posTag ? posMap[posTag] : '',
     definition: def ? def.split('\t')[1] || '' : '',
     example: '',
+    synonyms: [], antonyms: [],
   };
 }
 
@@ -86,16 +99,17 @@ async function lookupPhrase(phrase) {
     if (syllables <= 1) p = p.replace(/^[ˈˌ]/, '');
     return p;
   });
-  return { phonetic: '/' + ipa.join(' ') + '/', audio: '', pos: 'phrase', definition: '', example: '' };
+  return { phonetic: '/' + ipa.join(' ') + '/', audio: '', pos: 'phrase', definition: '', example: '', synonyms: [], antonyms: [] };
 }
 
 async function lookupSingle(w) {
-  // Gọi song song cả 2 nguồn: ưu tiên nguồn 1 (có audio), lỗi/chậm thì lấy nguồn 2
-  const p1 = lookupDictApi(w), p2 = lookupDatamuse(w);
+  // Gọi song song cả 2 nguồn: ưu tiên nguồn 1 (có audio), lỗi/chậm thì lấy nguồn 2; đồng/trái nghĩa bổ sung từ Datamuse
+  const p1 = lookupDictApi(w), p2 = lookupDatamuse(w), pRel = lookupRelated(w);
   p2.catch(() => {});
+  const withRelated = async r => { const rel = await pRel; if (!r.synonyms.length) r.synonyms = rel.synonyms; if (!r.antonyms.length) r.antonyms = rel.antonyms; return r; };
   let e1;
-  try { return await p1; } catch (e) { e1 = e; }
-  try { return await p2; }
+  try { return await withRelated(await p1); } catch (e) { e1 = e; }
+  try { return await withRelated(await p2); }
   catch (e2) {
     if (e1.message === 'notfound' || e2.message === 'notfound') throw new Error('Không tìm thấy từ này trong từ điển');
     throw new Error('Không kết nối được từ điển (kiểm tra internet hoặc thử lại sau)');

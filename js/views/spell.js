@@ -1,10 +1,10 @@
-import { $, $$, esc, shuffle, toast, isTyping, normalizeAnswer, hintFor, isPhrase } from '../utils.js?v=12';
-import { Store } from '../store.js?v=12';
-import { TTS } from '../tts.js?v=12';
-import { setTitle, renderSidebar } from '../shell.js?v=12';
-import { isModalOpen } from '../modal.js?v=12';
-import { onLeave, go } from '../router.js?v=12';
-import { resolveWordSet } from './flashcards.js?v=12';
+import { $, $$, esc, shuffle, toast, isTyping, normalizeAnswer, hintFor, isPhrase } from '../utils.js?v=13';
+import { Store } from '../store.js?v=13';
+import { TTS } from '../tts.js?v=13';
+import { setTitle, renderSidebar } from '../shell.js?v=13';
+import { isModalOpen } from '../modal.js?v=13';
+import { onLeave, go } from '../router.js?v=13';
+import { resolveWordSet } from './flashcards.js?v=13';
 
 // Tuỳ chọn nhớ giữa các lần: prompt = audio | meaning | both; requeue = gõ sai thì hỏi lại ở cuối
 const opt = { prompt: 'audio', requeue: true, strict: false };

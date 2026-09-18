@@ -1,10 +1,10 @@
-import { $, esc, shuffle, toast, isTyping, lengthClass } from '../utils.js?v=12';
-import { Store } from '../store.js?v=12';
-import { TTS } from '../tts.js?v=12';
-import { Speech } from '../speech.js?v=12';
-import { setTitle, renderSidebar } from '../shell.js?v=12';
-import { isModalOpen } from '../modal.js?v=12';
-import { onLeave, go } from '../router.js?v=12';
+import { $, esc, shuffle, toast, isTyping, lengthClass, relHTML } from '../utils.js?v=13';
+import { Store } from '../store.js?v=13';
+import { TTS } from '../tts.js?v=13';
+import { Speech } from '../speech.js?v=13';
+import { setTitle, renderSidebar } from '../shell.js?v=13';
+import { isModalOpen } from '../modal.js?v=13';
+import { onLeave, go } from '../router.js?v=13';
 
 /**
  * Bộ từ để học theo id trên URL: id chủ đề, 'all' (mọi chủ đề) hoặc 'starred' (từ đã đánh dấu ⭐)
@@ -67,6 +67,7 @@ export function runFlashSession(el, opts) {
       <div class="m ${lengthClass(w.meaning)}">${esc(w.meaning)}</div>
       ${frontIsEn && w.example ? `<div class="ex">"${esc(w.example)}"</div>` : ''}
       ${w.exampleVi ? `<div class="exvi">${esc(w.exampleVi)}</div>` : ''}
+      ${w.synonyms || w.antonyms ? `<div class="fc-rel">${w.synonyms ? `<span class="rel-row">≈ ${relHTML(w.synonyms, 'syn')}</span>` : ''}${w.antonyms ? `<span class="rel-row">≠ ${relHTML(w.antonyms, 'ant')}</span>` : ''}</div>` : ''}
       ${w.note ? `<div class="exvi">📌 ${esc(w.note)}</div>` : ''}`;
     el.innerHTML = `
       <div class="fc-wrap">
